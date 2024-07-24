@@ -34,18 +34,29 @@ def fetch_and_process_orders():
 
     end_date = datetime.now().date() - timedelta(days=1)
     
+    st.info(f"Letztes Importdatum: {last_import_date}, Enddatum: {end_date}")
+
     if last_import_date >= end_date:
         st.info("Alle verfügbaren Daten wurden bereits importiert.")
         return []
 
-    orders_data = billbee_api.get_orders(last_import_date + timedelta(days=1), end_date)
-    processed_orders = process_orders(orders_data)
+    st.info(f"Importiere Bestellungen von {last_import_date + timedelta(days=1)} bis {end_date}")
+    
+    try:
+        orders_data = billbee_api.get_orders(last_import_date + timedelta(days=1), end_date)
+        st.info(f"Anzahl der abgerufenen Bestellungen: {len(orders_data)}")
+        
+        processed_orders = process_orders(orders_data)
+        st.info(f"Anzahl der verarbeiteten Bestellungen: {len(processed_orders)}")
 
-    # Update last import date
-    with s3.open(last_import_path, 'w') as f:
-        f.write(end_date.strftime("%Y-%m-%d"))
+        # Update last import date
+        with s3.open(last_import_path, 'w') as f:
+            f.write(end_date.strftime("%Y-%m-%d"))
 
-    return processed_orders
+        return processed_orders
+    except Exception as e:
+        st.error(f"Fehler beim Abrufen oder Verarbeiten der Bestellungen: {str(e)}")
+        return []
 
 # Funktion zur Berechnung des Verbrauchs pro Karton-Art
 def calculate_box_usage(allocated_orders):
