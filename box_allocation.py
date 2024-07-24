@@ -5,7 +5,7 @@ def safe_float(value):
         return 0.0
 
 def allocate_box(order):
-    order_items = order.get('OrderItems', [])
+    order_items = [item for item in order.get('OrderItems', []) if item.get('Product') is not None]
     total_items = sum(safe_float(item.get('Quantity', 0)) for item in order_items)
     total_weight = sum(
         safe_float(item.get('Product', {}).get('Weight', 0)) * safe_float(item.get('Quantity', 0))
@@ -18,12 +18,6 @@ def allocate_box(order):
         1 for item in order_items 
         if item.get('Product', {}).get('SKU') in special_skus
     )
-
-    # Überprüfe auf 'None' Produkte
-    has_none_product = any(item.get('Product', {}).get('SKU') is None for item in order_items)
-
-    if has_none_product:
-        return None  # Keine Zuordnung, wenn 'None' Produkte vorhanden sind
 
     if special_sku_count > 0:
         return '3002' * special_sku_count
