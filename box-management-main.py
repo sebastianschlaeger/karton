@@ -4,8 +4,8 @@ from collections import Counter
 from billbee_api import BillbeeAPI
 from box_allocation import allocate_box
 from data_processor import process_orders
-from inventory_management import update_box_inventory, get_box_inventory, initialize_inventory_if_empty
-from s3_operations import save_unallocated_orders, get_unallocated_orders, get_summary_data, update_box_usage
+from inventory_management import update_box_inventory, get_box_inventory, initialize_inventory_if_empty, adjust_inventory_for_usage
+from s3_operations import save_unallocated_orders, get_unallocated_orders, get_summary_data, update_box_usage, summarize_daily_usage
 
 st.title("Kartonverwaltungs-App")
 
@@ -38,7 +38,6 @@ def update_data():
         allocated_box = order['allocated_box']
         if allocated_box:
             allocated_orders.append((order, allocated_box))
-            update_box_inventory(allocated_box, -1)  # Reduziere Bestand um 1
             update_box_usage(allocated_box, 1)  # Erhöhe Nutzung um 1
         else:
             unallocated_orders.append(order)
@@ -72,23 +71,30 @@ def update_data():
     else:
         st.info("Keine nicht zuordenbaren Bestellungen gefunden.")
 
-# UI-Elemente
-if st.button("Daten aktualisieren"):
-    update_data()
-
-# Anzeige des aktuellen Kartonbestands
-st.subheader("Aktueller Kartonbestand")
-inventory = get_box_inventory()
-for box_type, quantity in inventory.items():
-    st.write(f"{box_type}: {quantity}")
-
-# Bestandsaktualisierung
+# Modify the inventory update section
 st.subheader("Bestand aktualisieren")
 box_type = st.selectbox("Kartontyp", options=list(inventory.keys()))
 quantity_change = st.number_input("Mengenänderung", step=1)
 if st.button("Bestand aktualisieren"):
+    adjust_inventory_for_usage()
     update_box_inventory(box_type, quantity_change)
     st.success(f"Bestand für {box_type} aktualisiert.")
+
+# Add a new section to display daily usage summary
+st.subheader("Täglicher Verbrauch")
+s3 = get_s3_fs()
+bucket_name = st.secrets['aws']['S3_BUCKET_NAME']
+summary_file = "daily_box_usage.csv"
+summary_path = f"{bucket_name}/{summary_file}"
+
+if s3.exists(summary_path):
+    with s3.open(summary_path, 'r') as f:
+        daily_usage = pd.read_csv(f)
+    daily_usage['date'] = pd.to_datetime(daily_usage['date']).dt.date
+    daily_usage = daily_usage.sort_values(['date', 'box_type'], ascending=[False, True])
+    st.dataframe(daily_usage)
+else:
+    st.info("Keine täglichen Verbrauchsdaten verfügbar.")
 
 # Anzeige der Bestandsreichweite und Warnungen
 st.subheader("Bestandsreichweite")
