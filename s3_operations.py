@@ -39,7 +39,7 @@ def get_summary_data():
     s3 = get_s3_fs()
     bucket_name = st.secrets['aws']['S3_BUCKET_NAME']
     inventory_file = "box_inventory.csv"
-    usage_file = "box_usage.csv"
+    usage_file = "daily_box_usage.csv"  # Geändert von box_usage.csv zu daily_box_usage.csv
     inventory_path = f"{bucket_name}/{inventory_file}"
     usage_path = f"{bucket_name}/{usage_file}"
     
