@@ -10,7 +10,7 @@ class BillbeeAPI:
         self.username = st.secrets["billbee"]["USERNAME"]
         self.password = st.secrets["billbee"]["PASSWORD"]
 
-    def get_orders(self, start_date, end_date, order_states):
+    def get_orders(self, start_date, end_date):
         endpoint = f"{self.BASE_URL}/orders"
         headers = {
             "X-Billbee-Api-Key": self.api_key,
@@ -20,8 +20,7 @@ class BillbeeAPI:
             "minOrderDate": start_date.isoformat(),
             "maxOrderDate": end_date.isoformat(),
             "page": 1,
-            "pageSize": 250,  # Maximale Seitengröße
-            "orderStateId": ",".join(map(str, order_states))  # Mehrere Status-IDs, durch Kommas getrennt
+            "pageSize": 250  # Maximale Seitengröße
         }
         
         all_orders = []
@@ -41,8 +40,8 @@ class BillbeeAPI:
                 params['page'] += 1
             except requests.RequestException as e:
                 st.error(f"Fehler bei der Anfrage an Billbee API: {str(e)}")
-                if response.status_code != 200:
-                    st.error(f"API-Antwort: {response.text}")
+                if hasattr(e.response, 'text'):
+                    st.error(f"API-Antwort: {e.response.text}")
                 raise
         
         st.info(f"Gesamtanzahl der abgerufenen Bestellungen: {len(all_orders)}")
@@ -51,8 +50,6 @@ class BillbeeAPI:
     def get_orders_for_last_30_days(self):
         end_date = datetime.now().date()
         start_date = end_date - timedelta(days=30)
-        # IDs für versendete (4) und bezahlte (3) Aufträge
-        order_states = [3, 4]
-        return self.get_orders(start_date, end_date, order_states)
+        return self.get_orders(start_date, end_date)
 
 billbee_api = BillbeeAPI()
