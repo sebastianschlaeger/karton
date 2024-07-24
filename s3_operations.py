@@ -112,6 +112,9 @@ def clear_order_data():
             s3.rm(file_path)
 
 def update_box_usage(box_type, quantity, date):
+    if not isinstance(date, datetime.date):
+        raise ValueError(f"Ungültiges Datumsformat: {date}")
+    
     s3 = get_s3_fs()
     bucket_name = st.secrets['aws']['S3_BUCKET_NAME']
     filename = "daily_box_usage.csv"
@@ -123,18 +126,22 @@ def update_box_usage(box_type, quantity, date):
     else:
         usage = pd.DataFrame(columns=['date', 'box_type', 'quantity'])
     
+    # Konvertiere das Datum in ein String-Format
+    date_str = date.isoformat()
+    
     # Überprüfen, ob für diesen Tag bereits ein Eintrag existiert
-    mask = (usage['date'] == date.isoformat()) & (usage['box_type'] == box_type)
+    mask = (usage['date'] == date_str) & (usage['box_type'] == box_type)
     if mask.any():
         # Aktualisiere den bestehenden Eintrag
         usage.loc[mask, 'quantity'] += quantity
     else:
         # Füge einen neuen Eintrag hinzu
-        new_row = pd.DataFrame({'date': [date], 'box_type': [box_type], 'quantity': [quantity]})
+        new_row = pd.DataFrame({'date': [date_str], 'box_type': [box_type], 'quantity': [quantity]})
         usage = pd.concat([usage, new_row], ignore_index=True)
     
     # Sortiere das DataFrame nach Datum in absteigender Reihenfolge
+    usage['date'] = pd.to_datetime(usage['date'])
     usage = usage.sort_values('date', ascending=False)
     
     with s3.open(full_path, 'w') as f:
-        usage.to_csv(f, index=False)
+        usage.to_csv(f, index=False, date_format='%Y-%m-%d')
