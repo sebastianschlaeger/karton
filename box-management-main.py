@@ -90,9 +90,10 @@ for box_type, data in inventory.items():
 st.subheader("Bestand aktualisieren")
 box_type = st.selectbox("Kartontyp", options=list(inventory.keys()))
 quantity_change = st.number_input("Mengenänderung", step=1)
+update_date = st.date_input("Aktualisierungsdatum", value=datetime.now().date())
 if st.button("Bestand aktualisieren"):
     adjust_inventory_for_usage()
-    update_box_inventory(box_type, quantity_change)
+    update_box_inventory(box_type, quantity_change, update_date)
     st.success(f"Bestand für {box_type} aktualisiert.")
     # Aktualisiere das Inventar nach der Änderung
     inventory = get_box_inventory()
