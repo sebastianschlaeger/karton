@@ -12,7 +12,7 @@ def get_s3_fs():
         }
     )
 
-def update_box_inventory(box_type, quantity_change, update_date=None):
+def update_box_inventory(box_type, new_quantity, update_date=None):
     s3 = get_s3_fs()
     bucket_name = st.secrets['aws']['S3_BUCKET_NAME']
     filename = "box_inventory.csv"
@@ -30,14 +30,11 @@ def update_box_inventory(box_type, quantity_change, update_date=None):
         inventory = pd.DataFrame(columns=['box_type', 'quantity', 'last_updated'])
     
     if box_type in inventory['box_type'].values:
-        inventory.loc[inventory['box_type'] == box_type, 'quantity'] += quantity_change
+        inventory.loc[inventory['box_type'] == box_type, 'quantity'] = new_quantity
         inventory.loc[inventory['box_type'] == box_type, 'last_updated'] = update_date
     else:
-        new_row = pd.DataFrame({'box_type': [box_type], 'quantity': [quantity_change], 'last_updated': [update_date]})
+        new_row = pd.DataFrame({'box_type': [box_type], 'quantity': [new_quantity], 'last_updated': [update_date]})
         inventory = pd.concat([inventory, new_row], ignore_index=True)
-    
-    # Ensure quantity never goes below zero
-    inventory['quantity'] = inventory['quantity'].clip(lower=0)
     
     # Remove duplicates if any, keeping the last occurrence
     inventory = inventory.drop_duplicates(subset='box_type', keep='last')
