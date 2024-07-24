@@ -1,5 +1,5 @@
 import pandas as pd
-from datetime import datetime, timedelta
+from datetime import datetime
 import s3fs
 import streamlit as st
 import json
@@ -96,3 +96,22 @@ def update_box_usage(box_type, quantity):
     
     with s3.open(full_path, 'w') as f:
         usage.to_csv(f, index=False)
+    
+    summarize_daily_usage()
+
+def summarize_daily_usage():
+    s3 = get_s3_fs()
+    bucket_name = st.secrets['aws']['S3_BUCKET_NAME']
+    usage_file = "box_usage.csv"
+    summary_file = "daily_box_usage.csv"
+    usage_path = f"{bucket_name}/{usage_file}"
+    summary_path = f"{bucket_name}/{summary_file}"
+    
+    with s3.open(usage_path, 'r') as f:
+        usage = pd.read_csv(f)
+    
+    usage['date'] = pd.to_datetime(usage['date']).dt.date
+    daily_summary = usage.groupby(['date', 'box_type'])['quantity'].sum().reset_index()
+    
+    with s3.open(summary_path, 'w') as f:
+        daily_summary.to_csv(f, index=False)
