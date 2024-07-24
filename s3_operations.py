@@ -63,20 +63,40 @@ def get_summary_data():
         box_type = row['box_type']
         current_quantity = row['quantity']
         
+        # Berechne den ursprünglichen Bestand
+        original_quantity = current_quantity + recent_usage[recent_usage['box_type'] == box_type]['quantity'].sum()
+        
+        # Berechne den Verbrauch der letzten 30 Tage
+        usage_last_30_days = recent_usage[recent_usage['box_type'] == box_type]['quantity'].sum()
+        
         # Berechne den durchschnittlichen täglichen Verbrauch
-        total_usage = recent_usage[recent_usage['box_type'] == box_type]['quantity'].sum()
-        daily_usage = total_usage / 30 if total_usage > 0 else 1  # Verhindere Division durch Null
+        daily_usage = usage_last_30_days / 30 if usage_last_30_days > 0 else 1  # Verhindere Division durch Null
         
         # Berechne die Bestandsreichweite in Tagen
         days_left = current_quantity / daily_usage if daily_usage > 0 else float('inf')
         
         summary[box_type] = {
+            'original_quantity': original_quantity,
+            'usage_last_30_days': usage_last_30_days,
             'current_quantity': current_quantity,
-            'daily_usage': daily_usage,
             'days_left': days_left
         }
     
     return summary
+
+def clear_order_data():
+    s3 = get_s3_fs()
+    bucket_name = st.secrets['aws']['S3_BUCKET_NAME']
+    usage_file = "box_usage.csv"
+    daily_usage_file = "daily_box_usage.csv"
+    unallocated_orders_file = f"unallocated_orders_{datetime.now().strftime('%Y-%m-%d')}.json"
+    
+    files_to_clear = [usage_file, daily_usage_file, unallocated_orders_file]
+    
+    for file in files_to_clear:
+        file_path = f"{bucket_name}/{file}"
+        if s3.exists(file_path):
+            s3.rm(file_path)
 
 def update_box_usage(box_type, quantity):
     s3 = get_s3_fs()
