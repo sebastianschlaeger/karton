@@ -10,9 +10,14 @@ def process_orders(orders_data):
     processed_orders = []
     
     for order in orders_data:
+        valid_items = [item for item in order.get('OrderItems', []) if item.get('Product') is not None]
+        
+        if not valid_items:
+            continue  # Überspringe Bestellungen ohne gültige Produkte
+        
         total_weight = sum(
             safe_float(item.get('Product', {}).get('Weight', 0)) * safe_float(item.get('Quantity', 0))
-            for item in order.get('OrderItems', [])
+            for item in valid_items
         )
         
         processed_order = {
@@ -25,7 +30,7 @@ def process_orders(orders_data):
                     'quantity': safe_float(item.get('Quantity', 0)),
                     'weight': safe_float(item.get('Product', {}).get('Weight', 0))
                 }
-                for item in order.get('OrderItems', [])
+                for item in valid_items
             ]
         }
         
