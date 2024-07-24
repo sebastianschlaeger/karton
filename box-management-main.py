@@ -5,7 +5,7 @@ from billbee_api import BillbeeAPI
 from box_allocation import allocate_box
 from data_processor import process_orders
 from inventory_management import update_box_inventory, get_box_inventory, initialize_inventory_if_empty, adjust_inventory_for_usage
-from s3_operations import save_unallocated_orders, get_unallocated_orders, get_summary_data, update_box_usage, summarize_daily_usage, get_s3_fs
+from s3_operations import save_unallocated_orders, get_unallocated_orders, get_summary_data, update_box_usage, summarize_daily_usage, get_s3_fs, clear_order_data
 import pandas as pd
 
 st.title("Kartonverwaltungs-App")
@@ -33,7 +33,11 @@ def calculate_box_usage(allocated_orders):
     return usage_counter
 
 # Hauptfunktion zum Aktualisieren der Daten
-def update_data():
+def update_data(clear_existing_data=False):
+    if clear_existing_data:
+        clear_order_data()
+        st.success("Vorhandene Bestelldaten wurden gelöscht.")
+    
     processed_orders = fetch_and_process_orders()
     allocated_orders = []
     unallocated_orders = []
@@ -76,8 +80,9 @@ def update_data():
         st.info("Keine nicht zuordenbaren Bestellungen gefunden.")
 
 # UI-Elemente
+clear_data = st.checkbox("Vorhandene Bestelldaten löschen")
 if st.button("Daten aktualisieren"):
-    update_data()
+    update_data(clear_data)
 
 # Anzeige des aktuellen Kartonbestands
 st.subheader("Aktueller Kartonbestand")
@@ -102,14 +107,20 @@ if st.button("Bestand aktualisieren"):
 st.subheader("Bestandsreichweite")
 try:
     summary_data = get_summary_data()
-    for box_type, data in summary_data.items():
-        days_left = data.get('days_left', 'Nicht verfügbar')
-        if isinstance(days_left, (int, float)):
-            st.write(f"{box_type}: {days_left:.1f} Tage")
-            if days_left < 30:
-                st.warning(f"Warnung: Bestand für {box_type} reicht nur noch für {days_left:.1f} Tage!")
-        else:
-            st.write(f"{box_type}: Bestandsreichweite nicht verfügbar")
+    data = []
+    for box_type, info in summary_data.items():
+        data.append({
+            "Kartontyp": box_type,
+            "Ursprünglicher Bestand": int(info['original_quantity']),
+            "Verbrauch (letzte 30 Tage)": int(info['usage_last_30_days']),
+            "Aktueller Bestand": int(info['current_quantity']),
+            "Reichweite (Tage)": f"{info['days_left']:.1f}"
+        })
+        if info['days_left'] < 30:
+            st.warning(f"Warnung: Bestand für {box_type} reicht nur noch für {info['days_left']:.1f} Tage!")
+    
+    df = pd.DataFrame(data)
+    st.table(df.set_index("Kartontyp"))
 except Exception as e:
     st.error(f"Fehler beim Abrufen der Bestandsreichweite: {str(e)}")
 
