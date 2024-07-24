@@ -42,23 +42,51 @@ def fetch_and_process_orders():
         st.info("Alle verfügbaren Daten wurden bereits importiert.")
         return []
 
-    start_date = last_import_date + timedelta(days=1)
-    st.info(f"Importiere Bestellungen von {start_date} bis {end_date}")
+    all_processed_orders = []
+    current_date = end_date
     
+    with st.progress(0) as progress_bar:
+        total_days = (end_date - last_import_date).days
+        days_processed = 0
+        
+        while current_date > last_import_date:
+            st.info(f"Verarbeite Bestellungen für {current_date}")
+            daily_orders = fetch_and_process_daily_orders(current_date)
+            all_processed_orders.extend(daily_orders)
+            
+            current_date -= timedelta(days=1)
+            days_processed += 1
+            progress = days_processed / total_days
+            progress_bar.progress(progress)
+
+    # Update last import date
+    with s3.open(last_import_path, 'w') as f:
+        f.write(end_date.strftime("%Y-%m-%d"))
+
+    st.success(f"Insgesamt {len(all_processed_orders)} Bestellungen verarbeitet.")
+    return all_processed_orders
+
+def fetch_and_process_daily_orders(date):
     try:
-        orders_data = billbee_api.get_orders(start_date, end_date)
-        st.info(f"Anzahl der abgerufenen Bestellungen: {len(orders_data)}")
+        orders_data = billbee_api.get_orders(date, date + timedelta(days=1))
+        st.info(f"Anzahl der abgerufenen Bestellungen für {date}: {len(orders_data)}")
         
         processed_orders = process_orders(orders_data)
-        st.info(f"Anzahl der verarbeiteten Bestellungen: {len(processed_orders)}")
+        st.info(f"Anzahl der verarbeiteten Bestellungen für {date}: {len(processed_orders)}")
 
-        # Update last import date
-        with s3.open(last_import_path, 'w') as f:
-            f.write(end_date.strftime("%Y-%m-%d"))
+        # Summiere den Kartonverbrauch für diesen Tag
+        daily_usage = Counter()
+        for order in processed_orders:
+            if order['allocated_box']:
+                daily_usage[order['allocated_box']] += 1
+
+        # Speichere die tägliche Zusammenfassung
+        for box_type, quantity in daily_usage.items():
+            update_box_usage(box_type, quantity, date)
 
         return processed_orders
     except Exception as e:
-        st.error(f"Fehler beim Abrufen oder Verarbeiten der Bestellungen: {str(e)}")
+        st.error(f"Fehler beim Abrufen oder Verarbeiten der Bestellungen für {date}: {str(e)}")
         return []
 
 # Funktion zur Berechnung des Verbrauchs pro Karton-Art
