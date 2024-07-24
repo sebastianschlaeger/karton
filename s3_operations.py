@@ -63,14 +63,14 @@ def get_summary_data():
         box_type = row['box_type']
         current_quantity = row['quantity']
         
-        # Berechne den ursprünglichen Bestand
-        original_quantity = current_quantity + recent_usage[recent_usage['box_type'] == box_type]['quantity'].sum()
-        
         # Berechne den Verbrauch der letzten 30 Tage
         usage_last_30_days = recent_usage[recent_usage['box_type'] == box_type]['quantity'].sum()
         
+        # Berechne den ursprünglichen Bestand
+        original_quantity = current_quantity + usage_last_30_days
+        
         # Berechne den durchschnittlichen täglichen Verbrauch
-        daily_usage = usage_last_30_days / 30 if usage_last_30_days > 0 else 1  # Verhindere Division durch Null
+        daily_usage = usage_last_30_days / 30 if usage_last_30_days > 0 else 0  # Verhindere Division durch Null
         
         # Berechne die Bestandsreichweite in Tagen
         days_left = current_quantity / daily_usage if daily_usage > 0 else float('inf')
