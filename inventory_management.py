@@ -1,4 +1,5 @@
 import pandas as pd
+from datetime import datetime
 import s3fs
 import streamlit as st
 
@@ -21,12 +22,15 @@ def update_box_inventory(box_type, quantity_change):
         with s3.open(full_path, 'r') as f:
             inventory = pd.read_csv(f)
     else:
-        inventory = pd.DataFrame(columns=['box_type', 'quantity'])
+        inventory = pd.DataFrame(columns=['box_type', 'quantity', 'last_updated'])
+    
+    current_date = datetime.now().date()
     
     if box_type in inventory['box_type'].values:
         inventory.loc[inventory['box_type'] == box_type, 'quantity'] += quantity_change
+        inventory.loc[inventory['box_type'] == box_type, 'last_updated'] = current_date
     else:
-        new_row = pd.DataFrame({'box_type': [box_type], 'quantity': [quantity_change]})
+        new_row = pd.DataFrame({'box_type': [box_type], 'quantity': [quantity_change], 'last_updated': [current_date]})
         inventory = pd.concat([inventory, new_row], ignore_index=True)
     
     # Ensure quantity never goes below zero
@@ -44,7 +48,7 @@ def get_box_inventory():
     if s3.exists(full_path):
         with s3.open(full_path, 'r') as f:
             inventory = pd.read_csv(f)
-        return dict(zip(inventory['box_type'], inventory['quantity']))
+        return inventory.set_index('box_type').to_dict(orient='index')
     else:
         return {}
 
