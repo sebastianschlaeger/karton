@@ -68,6 +68,9 @@ def fetch_and_process_orders():
 
 def fetch_and_process_daily_orders(date):
     try:
+        if not isinstance(date, datetime.date):
+            raise ValueError(f"Ungültiges Datumsformat: {date}")
+        
         orders_data = billbee_api.get_orders(date, date + timedelta(days=1))
         st.info(f"Anzahl der abgerufenen Bestellungen für {date}: {len(orders_data)}")
         
@@ -88,7 +91,7 @@ def fetch_and_process_daily_orders(date):
     except Exception as e:
         st.error(f"Fehler beim Abrufen oder Verarbeiten der Bestellungen für {date}: {str(e)}")
         return []
-
+        
 # Funktion zur Berechnung des Verbrauchs pro Karton-Art
 def calculate_box_usage(allocated_orders):
     usage_counter = Counter()
