@@ -15,6 +15,9 @@ billbee_api = BillbeeAPI()
 # Initialisiere Inventar, falls es leer ist
 initialize_inventory_if_empty()
 
+# Lade das aktuelle Inventar
+inventory = get_box_inventory()
+
 # Funktion zum Abrufen und Verarbeiten von Bestellungen
 def fetch_and_process_orders():
     orders_data = billbee_api.get_last_50_orders()
@@ -71,7 +74,16 @@ def update_data():
     else:
         st.info("Keine nicht zuordenbaren Bestellungen gefunden.")
 
-# Modify the inventory update section
+# UI-Elemente
+if st.button("Daten aktualisieren"):
+    update_data()
+
+# Anzeige des aktuellen Kartonbestands
+st.subheader("Aktueller Kartonbestand")
+for box_type, data in inventory.items():
+    st.write(f"{box_type}: {data['quantity']} (Zuletzt aktualisiert: {data['last_updated']})")
+
+# Bestandsaktualisierung
 st.subheader("Bestand aktualisieren")
 box_type = st.selectbox("Kartontyp", options=list(inventory.keys()))
 quantity_change = st.number_input("Mengenänderung", step=1)
@@ -79,9 +91,21 @@ if st.button("Bestand aktualisieren"):
     adjust_inventory_for_usage()
     update_box_inventory(box_type, quantity_change)
     st.success(f"Bestand für {box_type} aktualisiert.")
+    # Aktualisiere das Inventar nach der Änderung
+    inventory = get_box_inventory()
 
-# Add a new section to display daily usage summary
+# Anzeige der Bestandsreichweite und Warnungen
+st.subheader("Bestandsreichweite")
+summary_data = get_summary_data()
+for box_type, data in summary_data.items():
+    days_left = data['days_left']
+    st.write(f"{box_type}: {days_left:.1f} Tage")
+    if days_left < 30:
+        st.warning(f"Warnung: Bestand für {box_type} reicht nur noch für {days_left:.1f} Tage!")
+
+# Anzeige des täglichen Verbrauchs
 st.subheader("Täglicher Verbrauch")
+summarize_daily_usage()  # Aktualisiere die tägliche Zusammenfassung
 s3 = get_s3_fs()
 bucket_name = st.secrets['aws']['S3_BUCKET_NAME']
 summary_file = "daily_box_usage.csv"
@@ -95,14 +119,5 @@ if s3.exists(summary_path):
     st.dataframe(daily_usage)
 else:
     st.info("Keine täglichen Verbrauchsdaten verfügbar.")
-
-# Anzeige der Bestandsreichweite und Warnungen
-st.subheader("Bestandsreichweite")
-summary_data = get_summary_data()
-for box_type, data in summary_data.items():
-    days_left = data['days_left']
-    st.write(f"{box_type}: {days_left:.1f} Tage")
-    if days_left < 30:
-        st.warning(f"Warnung: Bestand für {box_type} reicht nur noch für {days_left:.1f} Tage!")
 
 st.sidebar.info("Diese App verwaltet den Kartonbestand und zeigt Warnungen für niedrige Bestände an.")
