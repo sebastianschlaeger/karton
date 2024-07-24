@@ -142,22 +142,20 @@ if st.button("Bestand aktualisieren"):
 st.subheader("Bestandsreichweite")
 try:
     summary_data = get_summary_data()
-    data = []
-    for box_type, info in summary_data.items():
-        data.append({
-            "Kartontyp": box_type,
-            "Ursprünglicher Bestand": int(info['original_quantity']),
-            "Verbrauch (letzte 30 Tage)": int(info['usage_last_30_days']),
-            "Aktueller Bestand": int(info['current_quantity']),
-            "Reichweite (Tage)": f"{info['days_left']:.1f}"
-        })
-        if info['days_left'] < 30:
-            st.warning(f"Warnung: Bestand für {box_type} reicht nur noch für {info['days_left']:.1f} Tage!")
-    
-    df = pd.DataFrame(data)
-    st.table(df.set_index("Kartontyp"))
+    if not summary_data.empty:
+        st.table(summary_data.set_index("Kartontyp"))
+        
+        for _, row in summary_data.iterrows():
+            days_left = float(row['Reichweite (Tage)'].replace(',', '.'))
+            if days_left < 30:
+                st.warning(f"Warnung: Bestand für {row['Kartontyp']} reicht nur noch für {days_left:.1f} Tage!")
+    else:
+        st.info("Keine Daten zur Bestandsreichweite verfügbar.")
 except Exception as e:
     st.error(f"Fehler beim Abrufen der Bestandsreichweite: {str(e)}")
+    st.error("Details zum DataFrame:")
+    st.write(summary_data.info())
+    st.write(summary_data.head())
 
 def reset_last_import_date():
     s3 = get_s3_fs()
