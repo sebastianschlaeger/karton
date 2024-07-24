@@ -75,8 +75,16 @@ st.subheader("Nicht zuordenbare Bestellungen")
 unallocated_orders = get_unallocated_orders()
 if unallocated_orders:
     for order in unallocated_orders:
-        products_str = ", ".join([f"{p['sku']} (x{p['quantity']})" for p in order['products']])
-        st.write(f"Bestellnummer: {order['order_number']}, Produkte: {products_str}")
+        if isinstance(order, dict):
+            order_number = order.get('order_number', 'Unbekannt')
+            products = order.get('products', [])
+            if isinstance(products, list):
+                products_str = ", ".join([f"{p.get('sku', 'Unbekannt')} (x{p.get('quantity', 0)})" for p in products])
+            else:
+                products_str = str(products)
+            st.write(f"Bestellnummer: {order_number}, Produkte: {products_str}")
+        else:
+            st.write(f"Unerwartetes Bestellformat: {order}")
 else:
     st.info("Keine nicht zuordenbaren Bestellungen gefunden.")
 
