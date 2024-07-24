@@ -44,55 +44,59 @@ def get_summary_data():
     usage_path = f"{bucket_name}/{usage_file}"
     
     if not (s3.exists(inventory_path) and s3.exists(usage_path)):
-        return {}
+        return pd.DataFrame()  # Leeres DataFrame zurückgeben
     
-    with s3.open(inventory_path, 'r') as f:
-        inventory = pd.read_csv(f)
-    
-    with s3.open(usage_path, 'r') as f:
-        usage = pd.read_csv(f)
-    
-    # Überprüfen und ggf. umbenennen der Spalten
-    if 'box_type' not in inventory.columns:
-        st.error("Spalte 'box_type' nicht in der Inventardatei gefunden.")
-        return {}
-    
-    if 'box_type' not in usage.columns:
-        st.error("Spalte 'box_type' nicht in der Nutzungsdatei gefunden.")
-        return {}
-    
-    # Berechne den Verbrauch der letzten 30 Tage
-    today = datetime.now().date()
-    thirty_days_ago = today - timedelta(days=30)
-    usage['date'] = pd.to_datetime(usage['date']).dt.date
-    recent_usage = usage[usage['date'] >= thirty_days_ago]
-    
-    summary = []
-    for _, row in inventory.iterrows():
-        box_type = row['box_type']
-        current_quantity = row['quantity']
+    try:
+        with s3.open(inventory_path, 'r') as f:
+            inventory = pd.read_csv(f)
+        
+        with s3.open(usage_path, 'r') as f:
+            usage = pd.read_csv(f)
+        
+        # Überprüfen und ggf. umbenennen der Spalten
+        if 'box_type' not in inventory.columns or 'quantity' not in inventory.columns:
+            st.error("Erforderliche Spalten nicht in der Inventardatei gefunden.")
+            return pd.DataFrame()
+        
+        if 'box_type' not in usage.columns or 'quantity' not in usage.columns or 'date' not in usage.columns:
+            st.error("Erforderliche Spalten nicht in der Nutzungsdatei gefunden.")
+            return pd.DataFrame()
         
         # Berechne den Verbrauch der letzten 30 Tage
-        usage_last_30_days = recent_usage[recent_usage['box_type'] == box_type]['quantity'].sum()
+        today = datetime.now().date()
+        thirty_days_ago = today - timedelta(days=30)
+        usage['date'] = pd.to_datetime(usage['date']).dt.date
+        recent_usage = usage[usage['date'] >= thirty_days_ago]
         
-        # Berechne den ursprünglichen Bestand
-        original_quantity = current_quantity + usage_last_30_days
+        summary = []
+        for _, row in inventory.iterrows():
+            box_type = row['box_type']
+            current_quantity = row['quantity']
+            
+            # Berechne den Verbrauch der letzten 30 Tage
+            usage_last_30_days = recent_usage[recent_usage['box_type'] == box_type]['quantity'].sum()
+            
+            # Berechne den ursprünglichen Bestand
+            original_quantity = current_quantity + usage_last_30_days
+            
+            # Berechne den durchschnittlichen täglichen Verbrauch
+            daily_usage = usage_last_30_days / 30 if usage_last_30_days > 0 else 0  # Verhindere Division durch Null
+            
+            # Berechne die Bestandsreichweite in Tagen
+            days_left = current_quantity / daily_usage if daily_usage > 0 else float('inf')
+            
+            summary.append({
+                'Kartontyp': box_type,
+                'Ursprünglicher Bestand': int(original_quantity),
+                'Verbrauch (letzte 30 Tage)': int(usage_last_30_days),
+                'Aktueller Bestand': int(current_quantity),
+                'Reichweite (Tage)': f"{days_left:.1f}"
+            })
         
-        # Berechne den durchschnittlichen täglichen Verbrauch
-        daily_usage = usage_last_30_days / 30 if usage_last_30_days > 0 else 0  # Verhindere Division durch Null
-        
-        # Berechne die Bestandsreichweite in Tagen
-        days_left = current_quantity / daily_usage if daily_usage > 0 else float('inf')
-        
-        summary.append({
-            'Kartontyp': box_type,
-            'Ursprünglicher Bestand': int(original_quantity),
-            'Verbrauch (letzte 30 Tage)': int(usage_last_30_days),
-            'Aktueller Bestand': int(current_quantity),
-            'Reichweite (Tage)': f"{days_left:.1f}"
-        })
-    
-    return pd.DataFrame(summary)
+        return pd.DataFrame(summary)
+    except Exception as e:
+        st.error(f"Fehler bei der Verarbeitung der Daten: {str(e)}")
+        return pd.DataFrame()  # Im Fehlerfall leeres DataFrame zurückgeben
 
 def clear_order_data():
     s3 = get_s3_fs()
