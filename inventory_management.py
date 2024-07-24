@@ -53,6 +53,7 @@ def get_box_inventory():
             inventory = pd.read_csv(f)
         # Remove duplicates if any, keeping the last occurrence
         inventory = inventory.drop_duplicates(subset='box_type', keep='last')
+        # Convert to dictionary with box_type as key and a dict of quantity and last_updated as value
         return inventory.set_index('box_type').to_dict(orient='index')
     else:
         return {}
@@ -69,6 +70,7 @@ def initialize_inventory_if_empty():
             '3006': 1000,
             '3008': 1000
         }
+        current_date = datetime.now().date()
         for box_type, quantity in initial_inventory.items():
             update_box_inventory(box_type, quantity)
 
