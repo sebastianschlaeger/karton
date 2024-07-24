@@ -56,7 +56,7 @@ def fetch_and_process_orders():
             
             current_date -= timedelta(days=1)
             days_processed += 1
-            progress = days_processed / total_days
+            progress = min(days_processed / total_days, 1.0)  # Ensure progress doesn't exceed 1.0
             progress_bar.progress(progress)
 
     # Update last import date
