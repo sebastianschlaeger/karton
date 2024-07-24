@@ -45,19 +45,18 @@ def fetch_and_process_orders():
     all_processed_orders = []
     current_date = end_date
     
-    with st.progress(0) as progress_bar:
-        total_days = (end_date - last_import_date).days
-        days_processed = 0
+    total_days = (end_date - last_import_date).days
+    days_processed = 0
+    
+    while current_date > last_import_date:
+        st.info(f"Verarbeite Bestellungen für {current_date}")
+        daily_orders = fetch_and_process_daily_orders(current_date)
+        all_processed_orders.extend(daily_orders)
         
-        while current_date > last_import_date:
-            st.info(f"Verarbeite Bestellungen für {current_date}")
-            daily_orders = fetch_and_process_daily_orders(current_date)
-            all_processed_orders.extend(daily_orders)
-            
-            current_date -= timedelta(days=1)
-            days_processed += 1
-            progress = min(days_processed / total_days, 1.0)  # Ensure progress doesn't exceed 1.0
-            progress_bar.progress(progress)
+        current_date -= timedelta(days=1)
+        days_processed += 1
+        
+        st.info(f"Fortschritt: {days_processed}/{total_days} Tage verarbeitet")
 
     # Update last import date
     with s3.open(last_import_path, 'w') as f:
