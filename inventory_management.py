@@ -36,6 +36,9 @@ def update_box_inventory(box_type, quantity_change):
     # Ensure quantity never goes below zero
     inventory['quantity'] = inventory['quantity'].clip(lower=0)
     
+    # Remove duplicates if any, keeping the last occurrence
+    inventory = inventory.drop_duplicates(subset='box_type', keep='last')
+    
     with s3.open(full_path, 'w') as f:
         inventory.to_csv(f, index=False)
 
@@ -48,22 +51,12 @@ def get_box_inventory():
     if s3.exists(full_path):
         with s3.open(full_path, 'r') as f:
             inventory = pd.read_csv(f)
+        # Remove duplicates if any, keeping the last occurrence
+        inventory = inventory.drop_duplicates(subset='box_type', keep='last')
         return inventory.set_index('box_type').to_dict(orient='index')
     else:
         return {}
 
-def set_initial_inventory(initial_inventory):
-    s3 = get_s3_fs()
-    bucket_name = st.secrets['aws']['S3_BUCKET_NAME']
-    filename = "box_inventory.csv"
-    full_path = f"{bucket_name}/{filename}"
-    
-    inventory = pd.DataFrame(list(initial_inventory.items()), columns=['box_type', 'quantity'])
-    
-    with s3.open(full_path, 'w') as f:
-        inventory.to_csv(f, index=False)
-
-# Initialize inventory if it doesn't exist
 def initialize_inventory_if_empty():
     inventory = get_box_inventory()
     if not inventory:
@@ -76,7 +69,8 @@ def initialize_inventory_if_empty():
             '3006': 1000,
             '3008': 1000
         }
-        set_initial_inventory(initial_inventory)
+        for box_type, quantity in initial_inventory.items():
+            update_box_inventory(box_type, quantity)
 
 def adjust_inventory_for_usage():
     s3 = get_s3_fs()
@@ -85,6 +79,9 @@ def adjust_inventory_for_usage():
     usage_file = "daily_box_usage.csv"
     inventory_path = f"{bucket_name}/{inventory_file}"
     usage_path = f"{bucket_name}/{usage_file}"
+    
+    if not s3.exists(inventory_path) or not s3.exists(usage_path):
+        return  # Wenn eine der Dateien nicht existiert, beenden wir die Funktion
     
     with s3.open(inventory_path, 'r') as f:
         inventory = pd.read_csv(f)
@@ -107,6 +104,9 @@ def adjust_inventory_for_usage():
     
     # Ensure quantity never goes below zero
     inventory['quantity'] = inventory['quantity'].clip(lower=0)
+    
+    # Remove duplicates if any, keeping the last occurrence
+    inventory = inventory.drop_duplicates(subset='box_type', keep='last')
     
     with s3.open(inventory_path, 'w') as f:
         inventory.to_csv(f, index=False)
