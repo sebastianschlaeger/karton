@@ -111,12 +111,11 @@ def clear_order_data():
         if s3.exists(file_path):
             s3.rm(file_path)
 
-def update_box_usage(box_type, quantity):
+def update_box_usage(box_type, quantity, date):
     s3 = get_s3_fs()
     bucket_name = st.secrets['aws']['S3_BUCKET_NAME']
     filename = "daily_box_usage.csv"
     full_path = f"{bucket_name}/{filename}"
-    today = datetime.now().date()
     
     if s3.exists(full_path):
         with s3.open(full_path, 'r') as f:
@@ -124,19 +123,18 @@ def update_box_usage(box_type, quantity):
     else:
         usage = pd.DataFrame(columns=['date', 'box_type', 'quantity'])
     
-    usage['date'] = pd.to_datetime(usage['date']).dt.date
-    
-    # Überprüfen, ob für heute bereits ein Eintrag existiert
-    mask = (usage['date'] == today) & (usage['box_type'] == box_type)
+    # Überprüfen, ob für diesen Tag bereits ein Eintrag existiert
+    mask = (usage['date'] == date.isoformat()) & (usage['box_type'] == box_type)
     if mask.any():
         # Aktualisiere den bestehenden Eintrag
         usage.loc[mask, 'quantity'] += quantity
     else:
         # Füge einen neuen Eintrag hinzu
-        new_row = pd.DataFrame({'date': [today], 'box_type': [box_type], 'quantity': [quantity]})
+        new_row = pd.DataFrame({'date': [date], 'box_type': [box_type], 'quantity': [quantity]})
         usage = pd.concat([usage, new_row], ignore_index=True)
+    
+    # Sortiere das DataFrame nach Datum in absteigender Reihenfolge
+    usage = usage.sort_values('date', ascending=False)
     
     with s3.open(full_path, 'w') as f:
         usage.to_csv(f, index=False)
-
-# Die summarize_daily_usage() Funktion wurde entfernt, da die Zusammenfassung nun in update_box_usage() erfolgt
