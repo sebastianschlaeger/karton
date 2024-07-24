@@ -12,13 +12,16 @@ def get_s3_fs():
         }
     )
 
-def update_box_inventory(box_type, quantity_change):
+def update_box_inventory(box_type, quantity_change, update_date=None):
     s3 = get_s3_fs()
     bucket_name = st.secrets['aws']['S3_BUCKET_NAME']
     filename = "box_inventory.csv"
     full_path = f"{bucket_name}/{filename}"
     
-    current_date = datetime.now().date()
+    if update_date is None:
+        update_date = datetime.now().date()
+    else:
+        update_date = pd.to_datetime(update_date).date()
     
     if s3.exists(full_path):
         with s3.open(full_path, 'r') as f:
@@ -28,9 +31,9 @@ def update_box_inventory(box_type, quantity_change):
     
     if box_type in inventory['box_type'].values:
         inventory.loc[inventory['box_type'] == box_type, 'quantity'] += quantity_change
-        inventory.loc[inventory['box_type'] == box_type, 'last_updated'] = current_date
+        inventory.loc[inventory['box_type'] == box_type, 'last_updated'] = update_date
     else:
-        new_row = pd.DataFrame({'box_type': [box_type], 'quantity': [quantity_change], 'last_updated': [current_date]})
+        new_row = pd.DataFrame({'box_type': [box_type], 'quantity': [quantity_change], 'last_updated': [update_date]})
         inventory = pd.concat([inventory, new_row], ignore_index=True)
     
     # Ensure quantity never goes below zero
@@ -76,7 +79,7 @@ def initialize_inventory_if_empty():
         }
         current_date = datetime.now().date()
         for box_type, quantity in initial_inventory.items():
-            update_box_inventory(box_type, quantity)
+            update_box_inventory(box_type, quantity, current_date)
 
 def adjust_inventory_for_usage():
     s3 = get_s3_fs()
@@ -95,12 +98,18 @@ def adjust_inventory_for_usage():
     with s3.open(usage_path, 'r') as f:
         usage = pd.read_csv(f)
     
+    if 'last_updated' not in inventory.columns:
+        inventory['last_updated'] = pd.NaT
+    
     inventory['last_updated'] = pd.to_datetime(inventory['last_updated']).dt.date
     usage['date'] = pd.to_datetime(usage['date']).dt.date
     
     for _, inv_row in inventory.iterrows():
         box_type = inv_row['box_type']
         last_updated = inv_row['last_updated']
+        
+        if pd.isnull(last_updated):
+            continue
         
         recent_usage = usage[(usage['box_type'] == box_type) & (usage['date'] > last_updated)]
         total_usage = recent_usage['quantity'].sum()
