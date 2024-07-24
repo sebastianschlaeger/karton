@@ -77,3 +77,36 @@ def initialize_inventory_if_empty():
             '3008': 1000
         }
         set_initial_inventory(initial_inventory)
+
+def adjust_inventory_for_usage():
+    s3 = get_s3_fs()
+    bucket_name = st.secrets['aws']['S3_BUCKET_NAME']
+    inventory_file = "box_inventory.csv"
+    usage_file = "daily_box_usage.csv"
+    inventory_path = f"{bucket_name}/{inventory_file}"
+    usage_path = f"{bucket_name}/{usage_file}"
+    
+    with s3.open(inventory_path, 'r') as f:
+        inventory = pd.read_csv(f)
+    
+    with s3.open(usage_path, 'r') as f:
+        usage = pd.read_csv(f)
+    
+    inventory['last_updated'] = pd.to_datetime(inventory['last_updated']).dt.date
+    usage['date'] = pd.to_datetime(usage['date']).dt.date
+    
+    for _, inv_row in inventory.iterrows():
+        box_type = inv_row['box_type']
+        last_updated = inv_row['last_updated']
+        
+        recent_usage = usage[(usage['box_type'] == box_type) & (usage['date'] > last_updated)]
+        total_usage = recent_usage['quantity'].sum()
+        
+        inventory.loc[inventory['box_type'] == box_type, 'quantity'] -= total_usage
+        inventory.loc[inventory['box_type'] == box_type, 'last_updated'] = datetime.now().date()
+    
+    # Ensure quantity never goes below zero
+    inventory['quantity'] = inventory['quantity'].clip(lower=0)
+    
+    with s3.open(inventory_path, 'w') as f:
+        inventory.to_csv(f, index=False)
