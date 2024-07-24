@@ -26,13 +26,15 @@ def fetch_and_process_orders():
     last_import_file = "last_import_date.txt"
     last_import_path = f"{bucket_name}/{last_import_file}"
 
+    today = datetime.now().date()
+    
     if s3.exists(last_import_path):
         with s3.open(last_import_path, 'r') as f:
             last_import_date = datetime.strptime(f.read().strip(), "%Y-%m-%d").date()
     else:
-        last_import_date = datetime.now().date() - timedelta(days=30)
+        last_import_date = today - timedelta(days=30)
 
-    end_date = datetime.now().date() - timedelta(days=1)
+    end_date = today - timedelta(days=1)
     
     st.info(f"Letztes Importdatum: {last_import_date}, Enddatum: {end_date}")
 
@@ -40,10 +42,11 @@ def fetch_and_process_orders():
         st.info("Alle verfügbaren Daten wurden bereits importiert.")
         return []
 
-    st.info(f"Importiere Bestellungen von {last_import_date + timedelta(days=1)} bis {end_date}")
+    start_date = last_import_date + timedelta(days=1)
+    st.info(f"Importiere Bestellungen von {start_date} bis {end_date}")
     
     try:
-        orders_data = billbee_api.get_orders(last_import_date + timedelta(days=1), end_date)
+        orders_data = billbee_api.get_orders(start_date, end_date)
         st.info(f"Anzahl der abgerufenen Bestellungen: {len(orders_data)}")
         
         processed_orders = process_orders(orders_data)
