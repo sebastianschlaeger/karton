@@ -143,7 +143,7 @@ st.subheader("Bestandsreichweite")
 try:
     summary_data = get_summary_data()
     if not summary_data.empty:
-        st.table(summary_data.set_index("Kartontyp"))
+        st.dataframe(summary_data.set_index("Kartontyp"))
         
         for _, row in summary_data.iterrows():
             days_left = float(row['Reichweite (Tage)'].replace(',', '.'))
@@ -154,7 +154,7 @@ try:
 except Exception as e:
     st.error(f"Fehler beim Abrufen der Bestandsreichweite: {str(e)}")
     st.error("Details zum DataFrame:")
-    st.write(summary_data.info())
+    st.write(summary_data.dtypes)
     st.write(summary_data.head())
 
 def reset_last_import_date():
