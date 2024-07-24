@@ -39,7 +39,7 @@ def get_summary_data():
     s3 = get_s3_fs()
     bucket_name = st.secrets['aws']['S3_BUCKET_NAME']
     inventory_file = "box_inventory.csv"
-    usage_file = "daily_box_usage.csv"  # Geändert von box_usage.csv zu daily_box_usage.csv
+    usage_file = "daily_box_usage.csv"
     inventory_path = f"{bucket_name}/{inventory_file}"
     usage_path = f"{bucket_name}/{usage_file}"
     
@@ -87,11 +87,10 @@ def get_summary_data():
 def clear_order_data():
     s3 = get_s3_fs()
     bucket_name = st.secrets['aws']['S3_BUCKET_NAME']
-    usage_file = "box_usage.csv"
     daily_usage_file = "daily_box_usage.csv"
     unallocated_orders_file = f"unallocated_orders_{datetime.now().strftime('%Y-%m-%d')}.json"
     
-    files_to_clear = [usage_file, daily_usage_file, unallocated_orders_file]
+    files_to_clear = [daily_usage_file, unallocated_orders_file]
     
     for file in files_to_clear:
         file_path = f"{bucket_name}/{file}"
@@ -101,7 +100,7 @@ def clear_order_data():
 def update_box_usage(box_type, quantity):
     s3 = get_s3_fs()
     bucket_name = st.secrets['aws']['S3_BUCKET_NAME']
-    filename = "box_usage.csv"
+    filename = "daily_box_usage.csv"
     full_path = f"{bucket_name}/{filename}"
     today = datetime.now().date()
     
@@ -111,28 +110,19 @@ def update_box_usage(box_type, quantity):
     else:
         usage = pd.DataFrame(columns=['date', 'box_type', 'quantity'])
     
-    new_row = pd.DataFrame({'date': [today], 'box_type': [box_type], 'quantity': [quantity]})
-    usage = pd.concat([usage, new_row], ignore_index=True)
+    usage['date'] = pd.to_datetime(usage['date']).dt.date
+    
+    # Überprüfen, ob für heute bereits ein Eintrag existiert
+    mask = (usage['date'] == today) & (usage['box_type'] == box_type)
+    if mask.any():
+        # Aktualisiere den bestehenden Eintrag
+        usage.loc[mask, 'quantity'] += quantity
+    else:
+        # Füge einen neuen Eintrag hinzu
+        new_row = pd.DataFrame({'date': [today], 'box_type': [box_type], 'quantity': [quantity]})
+        usage = pd.concat([usage, new_row], ignore_index=True)
     
     with s3.open(full_path, 'w') as f:
         usage.to_csv(f, index=False)
 
-def summarize_daily_usage():
-    s3 = get_s3_fs()
-    bucket_name = st.secrets['aws']['S3_BUCKET_NAME']
-    usage_file = "box_usage.csv"
-    summary_file = "daily_box_usage.csv"
-    usage_path = f"{bucket_name}/{usage_file}"
-    summary_path = f"{bucket_name}/{summary_file}"
-    
-    if not s3.exists(usage_path):
-        return  # Wenn die Nutzungsdatei nicht existiert, beenden wir die Funktion
-    
-    with s3.open(usage_path, 'r') as f:
-        usage = pd.read_csv(f)
-    
-    usage['date'] = pd.to_datetime(usage['date']).dt.date
-    daily_summary = usage.groupby(['date', 'box_type'])['quantity'].sum().reset_index()
-    
-    with s3.open(summary_path, 'w') as f:
-        daily_summary.to_csv(f, index=False)
+# Die summarize_daily_usage() Funktion wurde entfernt, da die Zusammenfassung nun in update_box_usage() erfolgt
