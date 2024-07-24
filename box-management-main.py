@@ -3,13 +3,16 @@ from datetime import datetime, timedelta
 from billbee_api import BillbeeAPI
 from box_allocation import allocate_box
 from data_processor import process_orders
-from inventory_management import update_box_inventory, get_box_inventory
+from inventory_management import update_box_inventory, get_box_inventory, initialize_inventory_if_empty
 from s3_operations import save_unallocated_orders, get_unallocated_orders, get_summary_data, update_box_usage
 
 st.title("Kartonverwaltungs-App")
 
 # Initialisierung der Billbee API
 billbee_api = BillbeeAPI()
+
+# Initialisiere Inventar, falls es leer ist
+initialize_inventory_if_empty()
 
 # Funktion zum Abrufen und Verarbeiten von Bestellungen
 def fetch_and_process_orders():
