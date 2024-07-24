@@ -99,31 +99,37 @@ if st.button("Bestand aktualisieren"):
 
 # Anzeige der Bestandsreichweite und Warnungen
 st.subheader("Bestandsreichweite")
-summary_data = get_summary_data()
-for box_type, data in summary_data.items():
-    days_left = data.get('days_left', 'Nicht verfügbar')
-    if isinstance(days_left, (int, float)):
-        st.write(f"{box_type}: {days_left:.1f} Tage")
-        if days_left < 30:
-            st.warning(f"Warnung: Bestand für {box_type} reicht nur noch für {days_left:.1f} Tage!")
-    else:
-        st.write(f"{box_type}: Bestandsreichweite nicht verfügbar")
+try:
+    summary_data = get_summary_data()
+    for box_type, data in summary_data.items():
+        days_left = data.get('days_left', 'Nicht verfügbar')
+        if isinstance(days_left, (int, float)):
+            st.write(f"{box_type}: {days_left:.1f} Tage")
+            if days_left < 30:
+                st.warning(f"Warnung: Bestand für {box_type} reicht nur noch für {days_left:.1f} Tage!")
+        else:
+            st.write(f"{box_type}: Bestandsreichweite nicht verfügbar")
+except Exception as e:
+    st.error(f"Fehler beim Abrufen der Bestandsreichweite: {str(e)}")
 
 # Anzeige des täglichen Verbrauchs
 st.subheader("Täglicher Verbrauch")
-summarize_daily_usage()  # Aktualisiere die tägliche Zusammenfassung
-s3 = get_s3_fs()
-bucket_name = st.secrets['aws']['S3_BUCKET_NAME']
-summary_file = "daily_box_usage.csv"
-summary_path = f"{bucket_name}/{summary_file}"
+try:
+    summarize_daily_usage()  # Aktualisiere die tägliche Zusammenfassung
+    s3 = get_s3_fs()
+    bucket_name = st.secrets['aws']['S3_BUCKET_NAME']
+    summary_file = "daily_box_usage.csv"
+    summary_path = f"{bucket_name}/{summary_file}"
 
-if s3.exists(summary_path):
-    with s3.open(summary_path, 'r') as f:
-        daily_usage = pd.read_csv(f)
-    daily_usage['date'] = pd.to_datetime(daily_usage['date']).dt.date
-    daily_usage = daily_usage.sort_values(['date', 'box_type'], ascending=[False, True])
-    st.dataframe(daily_usage)
-else:
-    st.info("Keine täglichen Verbrauchsdaten verfügbar.")
+    if s3.exists(summary_path):
+        with s3.open(summary_path, 'r') as f:
+            daily_usage = pd.read_csv(f)
+        daily_usage['date'] = pd.to_datetime(daily_usage['date']).dt.date
+        daily_usage = daily_usage.sort_values(['date', 'box_type'], ascending=[False, True])
+        st.dataframe(daily_usage)
+    else:
+        st.info("Keine täglichen Verbrauchsdaten verfügbar.")
+except Exception as e:
+    st.error(f"Fehler beim Abrufen der täglichen Verbrauchsdaten: {str(e)}")
 
 st.sidebar.info("Diese App verwaltet den Kartonbestand und zeigt Warnungen für niedrige Bestände an.")
