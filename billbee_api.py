@@ -21,7 +21,6 @@ class BillbeeAPI:
             "maxOrderDate": end_date.isoformat(),
             "page": 1,
             "pageSize": 100,
-            "orderStateId": 5  # Assuming 5 is the ID for completed orders
         }
         
         all_orders = []
