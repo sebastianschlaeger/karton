@@ -1,5 +1,5 @@
 import pandas as pd
-from datetime import datetime
+from datetime import datetime, timedelta
 import s3fs
 import streamlit as st
 import json
@@ -96,8 +96,6 @@ def update_box_usage(box_type, quantity):
     
     with s3.open(full_path, 'w') as f:
         usage.to_csv(f, index=False)
-    
-    summarize_daily_usage()
 
 def summarize_daily_usage():
     s3 = get_s3_fs()
@@ -106,6 +104,9 @@ def summarize_daily_usage():
     summary_file = "daily_box_usage.csv"
     usage_path = f"{bucket_name}/{usage_file}"
     summary_path = f"{bucket_name}/{summary_file}"
+    
+    if not s3.exists(usage_path):
+        return  # Wenn die Nutzungsdatei nicht existiert, beenden wir die Funktion
     
     with s3.open(usage_path, 'r') as f:
         usage = pd.read_csv(f)
