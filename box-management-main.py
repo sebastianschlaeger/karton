@@ -13,9 +13,7 @@ billbee_api = BillbeeAPI()
 
 # Funktion zum Abrufen und Verarbeiten von Bestellungen
 def fetch_and_process_orders():
-    end_date = datetime.now().date()
-    start_date = end_date - timedelta(days=2)
-    orders_data = billbee_api.get_orders_for_date_range(start_date, end_date)
+    orders_data = billbee_api.get_last_50_orders()
     processed_orders = process_orders(orders_data)
     return processed_orders
 
@@ -29,19 +27,31 @@ def update_data():
         allocated_box = order['allocated_box']
         if allocated_box:
             allocated_orders.append((order, allocated_box))
+            update_box_inventory(allocated_box, -1)  # Reduziere Bestand um 1
+            update_box_usage(allocated_box, 1)  # Erhöhe Nutzung um 1
         else:
             unallocated_orders.append(order)
-
-    # Aktualisiere Kartonbestand und Nutzung
-    for order, box_type in allocated_orders:
-        update_box_inventory(box_type, -1)  # Reduziere Bestand um 1
-        update_box_usage(box_type, 1)  # Erhöhe Nutzung um 1
 
     # Speichere nicht zuordenbare Bestellungen
     if unallocated_orders:
         save_unallocated_orders(unallocated_orders)
 
     st.success(f"{len(allocated_orders)} Bestellungen verarbeitet. {len(unallocated_orders)} nicht zuordenbare Bestellungen gefunden.")
+    
+    # Anzeige der Zuordnungen
+    st.subheader("Zuordnungen der letzten 50 Bestellungen")
+    for order, box in allocated_orders:
+        products_str = ", ".join([f"{p['sku']} (x{p['quantity']})" for p in order['products']])
+        st.write(f"Bestellnummer: {order['order_number']}, Karton: {box}, Produkte: {products_str}")
+    
+    # Anzeige nicht zuordenbarer Bestellungen
+    st.subheader("Nicht zuordenbare Bestellungen")
+    if unallocated_orders:
+        for order in unallocated_orders:
+            products_str = ", ".join([f"{p['sku']} (x{p['quantity']})" for p in order['products']])
+            st.write(f"Bestellnummer: {order['order_number']}, Produkte: {products_str}")
+    else:
+        st.info("Keine nicht zuordenbaren Bestellungen gefunden.")
 
 # UI-Elemente
 if st.button("Daten aktualisieren"):
@@ -69,27 +79,5 @@ for box_type, data in summary_data.items():
     st.write(f"{box_type}: {days_left:.1f} Tage")
     if days_left < 30:
         st.warning(f"Warnung: Bestand für {box_type} reicht nur noch für {days_left:.1f} Tage!")
-
-# Anzeige nicht zuordenbarer Bestellungen
-st.subheader("Nicht zuordenbare Bestellungen")
-unallocated_orders = get_unallocated_orders()
-if unallocated_orders:
-    for order in unallocated_orders:
-        if isinstance(order, dict):
-            order_number = order.get('order_number', 'Unbekannt')
-            products = order.get('products', [])
-            if isinstance(products, list):
-                products_str = ", ".join([f"{p.get('sku', 'Unbekannt')} (x{p.get('quantity', 0)})" for p in products])
-            else:
-                products_str = str(products)
-            st.write(f"Bestellnummer: {order_number}, Produkte: {products_str}")
-        else:
-            st.write(f"Unerwartetes Bestellformat: {order}")
-else:
-    st.info("Keine nicht zuordenbaren Bestellungen gefunden.")
-
-# Funktion zur Anpassung der Kartonzuordnungsregeln
-st.subheader("Kartonzuordnungsregeln anpassen")
-st.write("Diese Funktion ist noch in Entwicklung. In Zukunft können Sie hier die Zuordnungsregeln anpassen.")
 
 st.sidebar.info("Diese App verwaltet den Kartonbestand und zeigt Warnungen für niedrige Bestände an.")
