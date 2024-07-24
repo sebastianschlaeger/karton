@@ -5,7 +5,7 @@ from billbee_api import BillbeeAPI
 from box_allocation import allocate_box
 from data_processor import process_orders
 from inventory_management import update_box_inventory, get_box_inventory, initialize_inventory_if_empty, adjust_inventory_for_usage
-from s3_operations import save_unallocated_orders, get_unallocated_orders, get_summary_data, update_box_usage, summarize_daily_usage, get_s3_fs, clear_order_data
+from s3_operations import save_unallocated_orders, get_unallocated_orders, get_summary_data, update_box_usage, get_s3_fs, clear_order_data
 import pandas as pd
 
 st.title("Kartonverwaltungs-App")
