@@ -111,9 +111,9 @@ def clear_order_data():
         if s3.exists(file_path):
             s3.rm(file_path)
 
-def update_box_usage(box_type, quantity, date):
-    if not isinstance(date, datetime.date):
-        raise ValueError(f"Ungültiges Datumsformat: {date}")
+def update_box_usage(box_type, quantity, process_date):
+    if not isinstance(process_date, date):
+        raise ValueError(f"Ungültiges Datumsformat: {process_date}")
     
     s3 = get_s3_fs()
     bucket_name = st.secrets['aws']['S3_BUCKET_NAME']
@@ -127,7 +127,7 @@ def update_box_usage(box_type, quantity, date):
         usage = pd.DataFrame(columns=['date', 'box_type', 'quantity'])
     
     # Konvertiere das Datum in ein String-Format
-    date_str = date.isoformat()
+    date_str = process_date.isoformat()
     
     # Überprüfen, ob für diesen Tag bereits ein Eintrag existiert
     mask = (usage['date'] == date_str) & (usage['box_type'] == box_type)
