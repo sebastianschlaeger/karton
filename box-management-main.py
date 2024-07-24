@@ -21,8 +21,30 @@ inventory = get_box_inventory()
 
 # Funktion zum Abrufen und Verarbeiten von Bestellungen
 def fetch_and_process_orders():
-    orders_data = billbee_api.get_last_50_orders()
+    s3 = get_s3_fs()
+    bucket_name = st.secrets['aws']['S3_BUCKET_NAME']
+    last_import_file = "last_import_date.txt"
+    last_import_path = f"{bucket_name}/{last_import_file}"
+
+    if s3.exists(last_import_path):
+        with s3.open(last_import_path, 'r') as f:
+            last_import_date = datetime.strptime(f.read().strip(), "%Y-%m-%d").date()
+    else:
+        last_import_date = datetime.now().date() - timedelta(days=30)
+
+    end_date = datetime.now().date() - timedelta(days=1)
+    
+    if last_import_date >= end_date:
+        st.info("Alle verfügbaren Daten wurden bereits importiert.")
+        return []
+
+    orders_data = billbee_api.get_orders(last_import_date + timedelta(days=1), end_date)
     processed_orders = process_orders(orders_data)
+
+    # Update last import date
+    with s3.open(last_import_path, 'w') as f:
+        f.write(end_date.strftime("%Y-%m-%d"))
+
     return processed_orders
 
 # Funktion zur Berechnung des Verbrauchs pro Karton-Art
@@ -94,11 +116,10 @@ for box_type, data in inventory.items():
 # Bestandsaktualisierung
 st.subheader("Bestand aktualisieren")
 box_type = st.selectbox("Kartontyp", options=list(inventory.keys()))
-quantity_change = st.number_input("Mengenänderung", step=1)
+new_quantity = st.number_input("Neuer Bestand", step=1, value=int(inventory[box_type]['quantity']))
 update_date = st.date_input("Aktualisierungsdatum", value=datetime.now().date())
 if st.button("Bestand aktualisieren"):
-    adjust_inventory_for_usage()
-    update_box_inventory(box_type, quantity_change, update_date)
+    update_box_inventory(box_type, new_quantity, update_date)
     st.success(f"Bestand für {box_type} aktualisiert.")
     # Aktualisiere das Inventar nach der Änderung
     inventory = get_box_inventory()
