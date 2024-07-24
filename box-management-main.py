@@ -82,7 +82,9 @@ if st.button("Daten aktualisieren"):
 # Anzeige des aktuellen Kartonbestands
 st.subheader("Aktueller Kartonbestand")
 for box_type, data in inventory.items():
-    st.write(f"{box_type}: {data['quantity']} (Zuletzt aktualisiert: {data['last_updated']})")
+    quantity = data.get('quantity', 'Nicht verfügbar')
+    last_updated = data.get('last_updated', 'Nicht verfügbar')
+    st.write(f"{box_type}: {quantity} (Zuletzt aktualisiert: {last_updated})")
 
 # Bestandsaktualisierung
 st.subheader("Bestand aktualisieren")
@@ -99,10 +101,13 @@ if st.button("Bestand aktualisieren"):
 st.subheader("Bestandsreichweite")
 summary_data = get_summary_data()
 for box_type, data in summary_data.items():
-    days_left = data['days_left']
-    st.write(f"{box_type}: {days_left:.1f} Tage")
-    if days_left < 30:
-        st.warning(f"Warnung: Bestand für {box_type} reicht nur noch für {days_left:.1f} Tage!")
+    days_left = data.get('days_left', 'Nicht verfügbar')
+    if isinstance(days_left, (int, float)):
+        st.write(f"{box_type}: {days_left:.1f} Tage")
+        if days_left < 30:
+            st.warning(f"Warnung: Bestand für {box_type} reicht nur noch für {days_left:.1f} Tage!")
+    else:
+        st.write(f"{box_type}: Bestandsreichweite nicht verfügbar")
 
 # Anzeige des täglichen Verbrauchs
 st.subheader("Täglicher Verbrauch")
