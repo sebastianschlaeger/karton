@@ -19,16 +19,22 @@ def allocate_box(order):
         if item.get('Product', {}).get('SKU') in special_skus
     )
 
+    # Überprüfe auf 'None' Produkte
+    has_none_product = any(item.get('Product', {}).get('SKU') is None for item in order_items)
+
+    if has_none_product:
+        return None  # Keine Zuordnung, wenn 'None' Produkte vorhanden sind
+
     if special_sku_count > 0:
         return '3002' * special_sku_count
 
     # Andere Zuordnungsregeln
     if total_items == 1:
-        return '3001'  # Alle einzelnen Produkte werden Karton 3001 zugeordnet
-    elif total_items == 2 and total_weight <= 3:
-        return '3002'
-    elif 3 <= total_items <= 4 and total_weight <= 6:
-        return '3003'
+        return '3001'
+    elif total_items == 2:
+        return '3002'  # Immer 3002 für 2 Produkte, unabhängig vom Gewicht
+    elif 3 <= total_items <= 4:
+        return '3003'  # Immer 3003 für 3-4 Produkte, unabhängig vom Gewicht
     elif any(item.get('Product', {}).get('SKU') == '80533' for item in order_items):
         return '3004'
     elif (5 <= total_items <= 10 and total_weight <= 10) or \
