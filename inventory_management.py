@@ -18,13 +18,13 @@ def update_box_inventory(box_type, quantity_change):
     filename = "box_inventory.csv"
     full_path = f"{bucket_name}/{filename}"
     
+    current_date = datetime.now().date()
+    
     if s3.exists(full_path):
         with s3.open(full_path, 'r') as f:
             inventory = pd.read_csv(f)
     else:
         inventory = pd.DataFrame(columns=['box_type', 'quantity', 'last_updated'])
-    
-    current_date = datetime.now().date()
     
     if box_type in inventory['box_type'].values:
         inventory.loc[inventory['box_type'] == box_type, 'quantity'] += quantity_change
@@ -53,6 +53,10 @@ def get_box_inventory():
             inventory = pd.read_csv(f)
         # Remove duplicates if any, keeping the last occurrence
         inventory = inventory.drop_duplicates(subset='box_type', keep='last')
+        # Ensure all necessary columns exist
+        for col in ['quantity', 'last_updated']:
+            if col not in inventory.columns:
+                inventory[col] = 0 if col == 'quantity' else pd.NaT
         # Convert to dictionary with box_type as key and a dict of quantity and last_updated as value
         return inventory.set_index('box_type').to_dict(orient='index')
     else:
