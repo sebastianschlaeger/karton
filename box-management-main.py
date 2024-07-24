@@ -46,7 +46,9 @@ def fetch_and_process_orders():
     st.info(f"Importiere Bestellungen von {start_date} bis {end_date}")
     
     try:
-        orders_data = billbee_api.get_orders(start_date, end_date)
+        # IDs für versendete (4) und bezahlte (3) Aufträge
+        order_states = [3, 4]
+        orders_data = billbee_api.get_orders(start_date, end_date, order_states)
         st.info(f"Anzahl der abgerufenen Bestellungen: {len(orders_data)}")
         
         processed_orders = process_orders(orders_data)
