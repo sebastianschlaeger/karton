@@ -89,6 +89,7 @@ def fetch_and_process_daily_orders(process_date):
         return processed_orders
     except Exception as e:
         st.error(f"Fehler beim Abrufen oder Verarbeiten der Bestellungen für {process_date}: {str(e)}")
+        st.error(f"Stacktrace: {traceback.format_exc()}")
         return []
         
 # Funktion zur Berechnung des Verbrauchs pro Karton-Art
