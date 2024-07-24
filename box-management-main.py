@@ -66,16 +66,16 @@ def fetch_and_process_orders():
     st.success(f"Insgesamt {len(all_processed_orders)} Bestellungen verarbeitet.")
     return all_processed_orders
 
-def fetch_and_process_daily_orders(date):
+def fetch_and_process_daily_orders(process_date):
     try:
-        if not isinstance(date, datetime.date):
-            raise ValueError(f"Ungültiges Datumsformat: {date}")
+        if not isinstance(process_date, date):
+            raise ValueError(f"Ungültiges Datumsformat: {process_date}")
         
-        orders_data = billbee_api.get_orders(date, date + timedelta(days=1))
-        st.info(f"Anzahl der abgerufenen Bestellungen für {date}: {len(orders_data)}")
+        orders_data = billbee_api.get_orders(process_date, process_date + timedelta(days=1))
+        st.info(f"Anzahl der abgerufenen Bestellungen für {process_date}: {len(orders_data)}")
         
         processed_orders = process_orders(orders_data)
-        st.info(f"Anzahl der verarbeiteten Bestellungen für {date}: {len(processed_orders)}")
+        st.info(f"Anzahl der verarbeiteten Bestellungen für {process_date}: {len(processed_orders)}")
 
         # Summiere den Kartonverbrauch für diesen Tag
         daily_usage = Counter()
@@ -85,11 +85,11 @@ def fetch_and_process_daily_orders(date):
 
         # Speichere die tägliche Zusammenfassung
         for box_type, quantity in daily_usage.items():
-            update_box_usage(box_type, quantity, date)
+            update_box_usage(box_type, quantity, process_date)
 
         return processed_orders
     except Exception as e:
-        st.error(f"Fehler beim Abrufen oder Verarbeiten der Bestellungen für {date}: {str(e)}")
+        st.error(f"Fehler beim Abrufen oder Verarbeiten der Bestellungen für {process_date}: {str(e)}")
         return []
         
 # Funktion zur Berechnung des Verbrauchs pro Karton-Art
