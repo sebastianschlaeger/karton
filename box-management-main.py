@@ -1,5 +1,6 @@
 import streamlit as st
 from datetime import datetime, timedelta
+from collections import Counter
 from billbee_api import BillbeeAPI
 from box_allocation import allocate_box
 from data_processor import process_orders
@@ -20,6 +21,13 @@ def fetch_and_process_orders():
     processed_orders = process_orders(orders_data)
     return processed_orders
 
+# Funktion zur Berechnung des Verbrauchs pro Karton-Art
+def calculate_box_usage(allocated_orders):
+    usage_counter = Counter()
+    for order, box in allocated_orders:
+        usage_counter[box] += 1
+    return usage_counter
+
 # Hauptfunktion zum Aktualisieren der Daten
 def update_data():
     processed_orders = fetch_and_process_orders()
@@ -35,11 +43,19 @@ def update_data():
         else:
             unallocated_orders.append(order)
 
+    # Berechne Verbrauch pro Karton-Art
+    box_usage = calculate_box_usage(allocated_orders)
+
     # Speichere nicht zuordenbare Bestellungen
     if unallocated_orders:
         save_unallocated_orders(unallocated_orders)
 
     st.success(f"{len(allocated_orders)} Bestellungen verarbeitet. {len(unallocated_orders)} nicht zuordenbare Bestellungen gefunden.")
+    
+    # Anzeige der Verbrauchsübersicht
+    st.subheader("Verbrauch pro Karton-Art")
+    for box_type, count in box_usage.items():
+        st.write(f"{box_type}: {count}")
     
     # Anzeige der Zuordnungen
     st.subheader("Zuordnungen der letzten 50 Bestellungen")
