@@ -159,6 +159,22 @@ try:
 except Exception as e:
     st.error(f"Fehler beim Abrufen der Bestandsreichweite: {str(e)}")
 
+def reset_last_import_date():
+    s3 = get_s3_fs()
+    bucket_name = st.secrets['aws']['S3_BUCKET_NAME']
+    last_import_file = "last_import_date.txt"
+    last_import_path = f"{bucket_name}/{last_import_file}"
+    
+    reset_date = datetime.now().date() - timedelta(days=30)
+    
+    with s3.open(last_import_path, 'w') as f:
+        f.write(reset_date.strftime("%Y-%m-%d"))
+    
+    st.success(f"Letztes Importdatum wurde auf {reset_date} zurückgesetzt.")
+
+if st.button("Importdatum zurücksetzen"):
+    reset_last_import_date()
+
 # Anzeige des täglichen Verbrauchs
 st.subheader("Täglicher Verbrauch")
 try:
