@@ -2,6 +2,7 @@ import pandas as pd
 from datetime import datetime, timedelta
 import s3fs
 import streamlit as st
+import json
 
 def get_s3_fs():
     return s3fs.S3FileSystem(
@@ -15,26 +16,25 @@ def get_s3_fs():
 def save_unallocated_orders(unallocated_orders):
     s3 = get_s3_fs()
     bucket_name = st.secrets['aws']['S3_BUCKET_NAME']
-    filename = f"unallocated_orders_{datetime.now().strftime('%Y-%m-%d')}.csv"
+    filename = f"unallocated_orders_{datetime.now().strftime('%Y-%m-%d')}.json"
     full_path = f"{bucket_name}/{filename}"
     
-    df = pd.DataFrame(unallocated_orders)
     with s3.open(full_path, 'w') as f:
-        df.to_csv(f, index=False)
+        json.dump(unallocated_orders, f)
 
 def get_unallocated_orders():
     s3 = get_s3_fs()
     bucket_name = st.secrets['aws']['S3_BUCKET_NAME']
     today = datetime.now().date()
-    filename = f"unallocated_orders_{today.strftime('%Y-%m-%d')}.csv"
+    filename = f"unallocated_orders_{today.strftime('%Y-%m-%d')}.json"
     full_path = f"{bucket_name}/{filename}"
     
     if s3.exists(full_path):
         with s3.open(full_path, 'r') as f:
-            return pd.read_csv(f).to_dict('records')
+            return json.load(f)
     else:
         return []
-
+        
 def get_summary_data():
     s3 = get_s3_fs()
     bucket_name = st.secrets['aws']['S3_BUCKET_NAME']
