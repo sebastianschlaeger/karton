@@ -23,8 +23,8 @@ def allocate_box(order):
         return '3002' * special_sku_count
 
     # Andere Zuordnungsregeln
-    if total_items == 1 and total_weight <= 2:
-        return '3001'
+    if total_items == 1:
+        return '3001'  # Alle einzelnen Produkte werden Karton 3001 zugeordnet
     elif total_items == 2 and total_weight <= 3:
         return '3002'
     elif 3 <= total_items <= 4 and total_weight <= 6:
