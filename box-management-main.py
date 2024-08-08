@@ -205,20 +205,38 @@ def reset_last_import_date():
 if st.button("Importdatum zurücksetzen"):
     reset_last_import_date()
 
+def summarize_daily_usage():
+    s3 = get_s3_fs()
+    bucket_name = st.secrets['aws']['S3_BUCKET_NAME']
+    usage_file = "daily_box_usage.csv"
+    usage_path = f"{bucket_name}/{usage_file}"
+    
+    if s3.exists(usage_path):
+        with s3.open(usage_path, 'r') as f:
+            usage_data = pd.read_csv(f)
+        
+        # Konvertiere das Datum in datetime
+        usage_data['date'] = pd.to_datetime(usage_data['date'])
+        
+        # Gruppiere nach Datum und Kartontyp, summiere die Mengen
+        daily_summary = usage_data.groupby(['date', 'box_type'])['quantity'].sum().reset_index()
+        
+        # Sortiere nach Datum (neueste zuerst) und Kartontyp
+        daily_summary = daily_summary.sort_values(['date', 'box_type'], ascending=[False, True])
+        
+        # Speichere die aktualisierte Zusammenfassung
+        with s3.open(usage_path, 'w') as f:
+            daily_summary.to_csv(f, index=False)
+        
+        return daily_summary
+    else:
+        return pd.DataFrame(columns=['date', 'box_type', 'quantity'])
+
 # Anzeige des täglichen Verbrauchs
 st.subheader("Täglicher Verbrauch")
 try:
-    summarize_daily_usage()  # Aktualisiere die tägliche Zusammenfassung
-    s3 = get_s3_fs()
-    bucket_name = st.secrets['aws']['S3_BUCKET_NAME']
-    summary_file = "daily_box_usage.csv"
-    summary_path = f"{bucket_name}/{summary_file}"
-
-    if s3.exists(summary_path):
-        with s3.open(summary_path, 'r') as f:
-            daily_usage = pd.read_csv(f)
-        daily_usage['date'] = pd.to_datetime(daily_usage['date']).dt.date
-        daily_usage = daily_usage.sort_values(['date', 'box_type'], ascending=[False, True])
+    daily_usage = summarize_daily_usage()
+    if not daily_usage.empty:
         st.dataframe(daily_usage)
     else:
         st.info("Keine täglichen Verbrauchsdaten verfügbar.")
