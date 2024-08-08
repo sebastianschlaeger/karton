@@ -111,9 +111,10 @@ def update_data(clear_existing_data=False):
 
     for order in processed_orders:
         allocated_box = order['allocated_box']
+        order_date = datetime.strptime(order['created_at'], "%Y-%m-%dT%H:%M:%S").date()
         if allocated_box:
             allocated_orders.append((order, allocated_box))
-            update_box_usage(allocated_box, 1)  # Erhöhe Nutzung um 1
+            update_box_usage(allocated_box, 1, order_date)  # Übergebe das Bestelldatum
         else:
             unallocated_orders.append(order)
 
