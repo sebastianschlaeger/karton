@@ -3,6 +3,7 @@ from datetime import datetime, timedelta, date
 import s3fs
 import streamlit as st
 import json
+import traceback
 
 def get_s3_fs():
     return s3fs.S3FileSystem(
@@ -36,17 +37,18 @@ def get_unallocated_orders():
         return []
         
 def get_summary_data():
-    s3 = get_s3_fs()
-    bucket_name = st.secrets['aws']['S3_BUCKET_NAME']
-    inventory_file = "box_inventory.csv"
-    usage_file = "daily_box_usage.csv"
-    inventory_path = f"{bucket_name}/{inventory_file}"
-    usage_path = f"{bucket_name}/{usage_file}"
-    
-    if not (s3.exists(inventory_path) and s3.exists(usage_path)):
-        return pd.DataFrame()
-    
     try:
+        s3 = get_s3_fs()
+        bucket_name = st.secrets['aws']['S3_BUCKET_NAME']
+        inventory_file = "box_inventory.csv"
+        usage_file = "daily_box_usage.csv"
+        inventory_path = f"{bucket_name}/{inventory_file}"
+        usage_path = f"{bucket_name}/{usage_file}"
+        
+        if not (s3.exists(inventory_path) and s3.exists(usage_path)):
+            st.warning("Inventar- oder Nutzungsdatei nicht gefunden.")
+            return pd.DataFrame()
+        
         with s3.open(inventory_path, 'r') as f:
             inventory = pd.read_csv(f)
         
