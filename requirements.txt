@@ -3,3 +3,4 @@ pandas
 requests
 s3fs
 python-dotenv
+tabulate
