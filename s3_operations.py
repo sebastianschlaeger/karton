@@ -61,21 +61,20 @@ def get_summary_data():
             # Berechne den aktuellen Bestand
             current_quantity = max(0, original_quantity - usage_since_update)
             
-            # Berechne den durchschnittlichen täglichen Verbrauch der letzten 30 Tage
+            # Berechne den Verbrauch der letzten 30 Tage
             today = datetime.now().date()
             thirty_days_ago = today - timedelta(days=30)
             usage_last_30_days = usage[(usage['box_type'] == box_type) & (usage['date'] >= thirty_days_ago)]['quantity'].sum()
-            daily_usage = usage_last_30_days / 30 if usage_last_30_days > 0 else 0
             
             # Berechne die Bestandsreichweite in Tagen
-            days_left = current_quantity / daily_usage if daily_usage > 0 else float('inf')
+            days_left = current_quantity / (usage_last_30_days / 30) if usage_last_30_days > 0 else float('inf')
             
             summary.append({
                 'Kartontyp': box_type,
                 'Ursprünglicher Bestand': int(original_quantity),
                 'Verbrauch seit letzter Aktualisierung': int(usage_since_update),
                 'Aktueller Bestand': int(current_quantity),
-                'Durchschnittlicher täglicher Verbrauch': f"{daily_usage:.2f}",
+                'Verbrauch letzte 30 Tage': int(usage_last_30_days),
                 'Reichweite (Tage)': f"{days_left:.1f}",
                 'Zuletzt aktualisiert': last_updated
             })
