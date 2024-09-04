@@ -172,7 +172,7 @@ def display_inventory_summary():
         if not summary_data.empty:
             # Add a new column for the URL
             summary_data['Order URL'] = summary_data['Kartontyp'].apply(
-                lambda x: f"[Bestellen]({BOX_URLS[x]})" if x in BOX_URLS else ""
+                lambda x: f"[Bestellen]({BOX_URLS[str(x)]})" if str(x) in BOX_URLS else ""
             )
             
             # Reorder columns to put the new column last
