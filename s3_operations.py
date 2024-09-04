@@ -56,32 +56,38 @@ def get_summary_data():
             usage = pd.read_csv(f)
         
         # Überprüfen und ggf. umbenennen der Spalten
-        if 'box_type' not in inventory.columns or 'quantity' not in inventory.columns:
+        required_inventory_columns = ['box_type', 'quantity', 'last_updated']
+        required_usage_columns = ['box_type', 'quantity', 'date']
+        
+        if not all(col in inventory.columns for col in required_inventory_columns):
             st.error("Erforderliche Spalten nicht in der Inventardatei gefunden.")
             return pd.DataFrame()
         
-        if 'box_type' not in usage.columns or 'quantity' not in usage.columns or 'date' not in usage.columns:
+        if not all(col in usage.columns for col in required_usage_columns):
             st.error("Erforderliche Spalten nicht in der Nutzungsdatei gefunden.")
             return pd.DataFrame()
         
-        # Berechne den Verbrauch der letzten 30 Tage
-        today = datetime.now().date()
-        thirty_days_ago = today - timedelta(days=30)
+        # Konvertiere Datumsspalten
+        inventory['last_updated'] = pd.to_datetime(inventory['last_updated']).dt.date
         usage['date'] = pd.to_datetime(usage['date']).dt.date
-        recent_usage = usage[usage['date'] >= thirty_days_ago]
         
         summary = []
         for _, row in inventory.iterrows():
             box_type = row['box_type']
-            original_quantity = row['quantity']  # Dies ist der ursprüngliche Bestand aus box_inventory.csv
+            original_quantity = row['quantity']
+            last_updated = row['last_updated']
             
-            # Berechne den Verbrauch der letzten 30 Tage
-            usage_last_30_days = recent_usage[recent_usage['box_type'] == box_type]['quantity'].sum()
+            # Berechne den Verbrauch seit dem letzten Aktualisierungsdatum
+            recent_usage = usage[(usage['box_type'] == box_type) & (usage['date'] > last_updated)]
+            usage_since_update = recent_usage['quantity'].sum()
             
             # Berechne den aktuellen Bestand
-            current_quantity = max(0, original_quantity - usage_last_30_days)
+            current_quantity = max(0, original_quantity - usage_since_update)
             
-            # Berechne den durchschnittlichen täglichen Verbrauch
+            # Berechne den durchschnittlichen täglichen Verbrauch der letzten 30 Tage
+            today = datetime.now().date()
+            thirty_days_ago = today - timedelta(days=30)
+            usage_last_30_days = usage[(usage['box_type'] == box_type) & (usage['date'] >= thirty_days_ago)]['quantity'].sum()
             daily_usage = usage_last_30_days / 30 if usage_last_30_days > 0 else 0
             
             # Berechne die Bestandsreichweite in Tagen
@@ -90,9 +96,11 @@ def get_summary_data():
             summary.append({
                 'Kartontyp': box_type,
                 'Ursprünglicher Bestand': int(original_quantity),
-                'Verbrauch (letzte 30 Tage)': int(usage_last_30_days),
+                'Verbrauch seit letzter Aktualisierung': int(usage_since_update),
                 'Aktueller Bestand': int(current_quantity),
-                'Reichweite (Tage)': f"{days_left:.1f}"
+                'Durchschnittlicher täglicher Verbrauch': f"{daily_usage:.2f}",
+                'Reichweite (Tage)': f"{days_left:.1f}",
+                'Zuletzt aktualisiert': last_updated
             })
         
         return pd.DataFrame(summary)
