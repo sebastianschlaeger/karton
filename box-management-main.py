@@ -7,8 +7,7 @@ from data_processor import process_orders
 from inventory_management import update_box_inventory, get_box_inventory, initialize_inventory_if_empty, adjust_inventory_for_usage
 from s3_operations import save_unallocated_orders, get_unallocated_orders, get_summary_data, update_box_usage, get_s3_fs, clear_order_data
 import pandas as pd
-
-st.title("Kartonverwaltungs-App")
+import traceback
 
 # Initialisierung der Billbee API
 billbee_api = BillbeeAPI()
@@ -147,102 +146,86 @@ def update_data(clear_existing_data=False):
     else:
         st.info("Keine nicht zuordenbaren Bestellungen gefunden.")
 
-# UI-Elemente
-clear_data = st.checkbox("Vorhandene Bestelldaten löschen")
-if st.button("Daten aktualisieren"):
-    with st.spinner('Daten werden aktualisiert...'):
-        processed_orders = fetch_and_process_orders()
-        update_data(processed_orders)
+# Hauptfunktion der App
+def main():
+    st.title("Kartonverwaltungs-App")
 
-# Anzeige des aktuellen Kartonbestands
-st.subheader("Aktueller Kartonbestand")
-for box_type, data in inventory.items():
-    quantity = data.get('quantity', 'Nicht verfügbar')
-    last_updated = data.get('last_updated', 'Nicht verfügbar')
-    st.write(f"{box_type}: {quantity} (Zuletzt aktualisiert: {last_updated})")
+    # Erstelle Tabs
+    tab1, tab2, tab3 = st.tabs(["Hauptansicht", "Bestandsverwaltung", "Nicht zuordenbare Bestellungen"])
 
-# Bestandsaktualisierung
-st.subheader("Bestand aktualisieren")
-box_type = st.selectbox("Kartontyp", options=list(inventory.keys()))
-new_quantity = st.number_input("Neuer Bestand", step=1, value=int(inventory[box_type]['quantity']))
-update_date = st.date_input("Aktualisierungsdatum", value=datetime.now().date())
-if st.button("Bestand aktualisieren"):
-    update_box_inventory(box_type, new_quantity, update_date)
-    st.success(f"Bestand für {box_type} aktualisiert.")
-    # Aktualisiere das Inventar nach der Änderung
-    inventory = get_box_inventory()
+    with tab1:
+        # Hier kommt der bisherige Hauptinhalt hin
+        clear_data = st.checkbox("Vorhandene Bestelldaten löschen")
+        if st.button("Daten aktualisieren"):
+            with st.spinner('Daten werden aktualisiert...'):
+                processed_orders = fetch_and_process_orders()
+                update_data(processed_orders)
 
-# Anzeige der Bestandsreichweite und Warnungen
-st.subheader("Bestandsreichweite")
-try:
-    summary_data = get_summary_data()
-    if not summary_data.empty:
-        st.dataframe(summary_data.set_index("Kartontyp"))
+        # Anzeige der Bestandsreichweite und Warnungen
+        st.subheader("Bestandsreichweite")
+        display_inventory_summary()
+
+    with tab2:
+        # Bestandsverwaltung
+        st.subheader("Aktueller Kartonbestand")
+        display_current_inventory()
+
+        st.subheader("Bestand aktualisieren")
+        update_inventory_ui()
+
+    with tab3:
+        # Nicht zuordenbare Bestellungen
+        st.subheader("Nicht zuordenbare Bestellungen")
+        display_unallocated_orders()
+
+# Funktion zur Anzeige der Bestandsübersicht
+def display_inventory_summary():
+    try:
+        summary_data = get_summary_data()
+        if not summary_data.empty:
+            st.dataframe(summary_data.set_index("Kartontyp"))
+            
+            for _, row in summary_data.iterrows():
+                days_left = float(row['Reichweite (Tage)'].replace(',', '.'))
+                if days_left < 30:
+                    st.warning(f"Warnung: Bestand für {row['Kartontyp']} reicht nur noch für {days_left:.1f} Tage!")
+        else:
+            st.info("Keine Daten zur Bestandsreichweite verfügbar.")
+    except Exception as e:
+        st.error(f"Fehler beim Abrufen der Bestandsreichweite: {str(e)}")
+        st.error(f"Stacktrace: {traceback.format_exc()}")
+
+# Funktion zur Anzeige des aktuellen Inventars
+def display_current_inventory():
+    for box_type, data in inventory.items():
+        quantity = data.get('quantity', 'Nicht verfügbar')
+        last_updated = data.get('last_updated', 'Nicht verfügbar')
+        st.write(f"{box_type}: {quantity} (Zuletzt aktualisiert: {last_updated})")
+
+# Funktion zur Aktualisierung des Inventars über die UI
+def update_inventory_ui():
+    box_type = st.selectbox("Kartontyp", options=list(inventory.keys()))
+    new_quantity = st.number_input("Neuer Bestand", step=1, value=int(inventory[box_type]['quantity']))
+    update_date = st.date_input("Aktualisierungsdatum", value=datetime.now().date())
+    if st.button("Bestand aktualisieren"):
+        update_box_inventory(box_type, new_quantity, update_date)
+        st.success(f"Bestand für {box_type} aktualisiert.")
+        # Aktualisiere das Inventar nach der Änderung
+        global inventory
+        inventory = get_box_inventory()
+
+# Funktion zur Anzeige nicht zuordenbarer Bestellungen
+def display_unallocated_orders():
+    unallocated_orders = get_unallocated_orders()
+    if unallocated_orders:
+        for order in unallocated_orders:
+            products_str = ", ".join([f"{p['sku']} (x{p['quantity']})" for p in order['products']])
+            st.write(f"Bestellnummer: {order['order_number']}, Produkte: {products_str}")
         
-        for _, row in summary_data.iterrows():
-            days_left = float(row['Reichweite (Tage)'].replace(',', '.'))
-            if days_left < 30:
-                st.warning(f"Warnung: Bestand für {row['Kartontyp']} reicht nur noch für {days_left:.1f} Tage!")
+        if st.button("Zuordnungsregeln aktualisieren"):
+            st.info("Hier könnte eine Funktion zur Aktualisierung der Zuordnungsregeln implementiert werden.")
     else:
-        st.info("Keine Daten zur Bestandsreichweite verfügbar.")
-except Exception as e:
-    st.error(f"Fehler beim Abrufen der Bestandsreichweite: {str(e)}")
-    st.error("Details zum DataFrame:")
-    st.write(summary_data.dtypes)
-    st.write(summary_data.head())
+        st.info("Keine nicht zuordenbaren Bestellungen gefunden.")
 
-def reset_last_import_date():
-    s3 = get_s3_fs()
-    bucket_name = st.secrets['aws']['S3_BUCKET_NAME']
-    last_import_file = "last_import_date.txt"
-    last_import_path = f"{bucket_name}/{last_import_file}"
-    
-    reset_date = datetime.now().date() - timedelta(days=30)
-    
-    with s3.open(last_import_path, 'w') as f:
-        f.write(reset_date.strftime("%Y-%m-%d"))
-    
-    st.success(f"Letztes Importdatum wurde auf {reset_date} zurückgesetzt.")
-
-if st.button("Importdatum zurücksetzen"):
-    reset_last_import_date()
-
-def summarize_daily_usage():
-    s3 = get_s3_fs()
-    bucket_name = st.secrets['aws']['S3_BUCKET_NAME']
-    usage_file = "daily_box_usage.csv"
-    usage_path = f"{bucket_name}/{usage_file}"
-    
-    if s3.exists(usage_path):
-        with s3.open(usage_path, 'r') as f:
-            usage_data = pd.read_csv(f)
-        
-        # Konvertiere das Datum in datetime
-        usage_data['date'] = pd.to_datetime(usage_data['date'])
-        
-        # Gruppiere nach Datum und Kartontyp, summiere die Mengen
-        daily_summary = usage_data.groupby(['date', 'box_type'])['quantity'].sum().reset_index()
-        
-        # Sortiere nach Datum (neueste zuerst) und Kartontyp
-        daily_summary = daily_summary.sort_values(['date', 'box_type'], ascending=[False, True])
-        
-        # Speichere die aktualisierte Zusammenfassung
-        with s3.open(usage_path, 'w') as f:
-            daily_summary.to_csv(f, index=False)
-        
-        return daily_summary
-    else:
-        return pd.DataFrame(columns=['date', 'box_type', 'quantity'])
-
-# Anzeige des täglichen Verbrauchs
-st.subheader("Täglicher Verbrauch")
-try:
-    daily_usage = summarize_daily_usage()
-    if not daily_usage.empty:
-        st.dataframe(daily_usage)
-    else:
-        st.info("Keine täglichen Verbrauchsdaten verfügbar.")
-except Exception as e:
-    st.error(f"Fehler beim Abrufen der täglichen Verbrauchsdaten: {str(e)}")
-
-st.sidebar.info("Diese App verwaltet den Kartonbestand und zeigt Warnungen für niedrige Bestände an.")
+if __name__ == "__main__":
+    main()
