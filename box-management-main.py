@@ -18,6 +18,12 @@ initialize_inventory_if_empty()
 # Lade das aktuelle Inventar
 inventory = get_box_inventory()
 
+# Add this dictionary at the top of the file, after the imports
+BOX_URLS = {
+    '3002': 'https://www.karton.eu/300x215x100-mm-einwellige-Kartons',
+    '3003': 'https://www.karton.eu/300x215x140-mm-einwellige-Kartons'
+}
+
 # Funktion zum Abrufen und Verarbeiten von Bestellungen
 def fetch_and_process_orders():
     s3 = get_s3_fs()
@@ -182,7 +188,11 @@ def display_current_inventory():
     for box_type, data in inventory.items():
         quantity = data.get('quantity', 'Nicht verfügbar')
         last_updated = data.get('last_updated', 'Nicht verfügbar')
-        st.write(f"{box_type}: {quantity} (Zuletzt aktualisiert: {last_updated})")
+        if box_type in BOX_URLS:
+            box_link = f"[{box_type}]({BOX_URLS[box_type]})"
+        else:
+            box_link = box_type
+        st.markdown(f"{box_link}: {quantity} (Zuletzt aktualisiert: {last_updated})")
 
 # Funktion zur Aktualisierung des Inventars über die UI
 def update_inventory_ui():
