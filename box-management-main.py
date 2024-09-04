@@ -118,8 +118,9 @@ def update_data(processed_orders):
     # Speichere nicht zuordenbare Bestellungen
     if unallocated_orders:
         save_unallocated_orders(unallocated_orders)
+        st.warning(f"{len(unallocated_orders)} nicht zuordenbare Bestellungen gefunden und gespeichert.")
 
-    st.success(f"{len(allocated_orders)} Bestellungen verarbeitet. {len(unallocated_orders)} nicht zuordenbare Bestellungen gefunden.")
+    st.success(f"{len(allocated_orders)} Bestellungen verarbeitet.")
     
     # Anzeige der Verbrauchsübersicht
     st.subheader("Verbrauch pro Karton-Art")
@@ -221,6 +222,7 @@ def update_inventory_ui():
 def display_unallocated_orders():
     unallocated_orders = get_unallocated_orders()
     if unallocated_orders:
+        st.info(f"Insgesamt {len(unallocated_orders)} nicht zuordenbare Bestellungen gefunden.")
         for order in unallocated_orders:
             products_str = ", ".join([f"{p['sku']} (x{p['quantity']})" for p in order['products']])
             st.write(f"Bestellnummer: {order['order_number']}, Produkte: {products_str}")
@@ -229,6 +231,13 @@ def display_unallocated_orders():
             st.info("Hier könnte eine Funktion zur Aktualisierung der Zuordnungsregeln implementiert werden.")
     else:
         st.info("Keine nicht zuordenbaren Bestellungen gefunden.")
+    
+    # Zeige den Pfad zur JSON-Datei an
+    s3 = get_s3_fs()
+    bucket_name = st.secrets['aws']['S3_BUCKET_NAME']
+    filename = "unallocated_orders.json"
+    full_path = f"{bucket_name}/{filename}"
+    st.info(f"Pfad zur JSON-Datei mit nicht zuordenbaren Bestellungen: {full_path}")
 
 def get_current_inventory():
     return get_box_inventory()
