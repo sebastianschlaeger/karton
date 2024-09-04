@@ -48,6 +48,17 @@ def get_summary_data():
         inventory['last_updated'] = pd.to_datetime(inventory['last_updated']).dt.date
         usage['date'] = pd.to_datetime(usage['date']).dt.date
         
+        # Definiere ein Dictionary für die Produktnamen
+        product_names = {
+            '3001': 'Karton 1er',
+            '3002': 'Karton 2er',
+            '3003': 'Karton 4er',
+            '3004': '25er Würfel (214)',
+            '3005': 'Karton 10 kg',
+            '3006': 'Karton 20 kg',
+            '3008': 'Karton 30 kg'
+        }
+
         summary = []
         for _, row in inventory.iterrows():
             box_type = row['box_type']
@@ -71,6 +82,7 @@ def get_summary_data():
             
             summary.append({
                 'Kartontyp': box_type,
+                'Produktname': product_names.get(box_type, 'Unbekannt'),
                 'Ursprünglicher Bestand': int(original_quantity),
                 'Verbrauch seit letzter Aktualisierung': int(usage_since_update),
                 'Aktueller Bestand': int(current_quantity),
