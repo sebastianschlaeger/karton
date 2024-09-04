@@ -184,8 +184,9 @@ def display_inventory_summary():
             
             for _, row in summary_data.iterrows():
                 days_left = float(row['Reichweite (Tage)'].replace(',', '.'))
+                kartontyp = row['Kartontyp_mit_URL'].split(']')[0][1:]  # Extract the Kartontyp from the URL format
                 if days_left < 30:
-                    st.warning(f"Warnung: Bestand für {row['Kartontyp']} reicht nur noch für {days_left:.1f} Tage!")
+                    st.warning(f"Warnung: Bestand für {kartontyp} reicht nur noch für {days_left:.1f} Tage!")
         else:
             st.info("Keine Daten zur Bestandsreichweite verfügbar.")
     except Exception as e:
