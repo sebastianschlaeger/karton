@@ -21,7 +21,9 @@ inventory = get_box_inventory()
 # Add this dictionary at the top of the file, after the imports
 BOX_URLS = {
     '3002': 'https://www.karton.eu/300x215x100-mm-einwellige-Kartons',
-    '3003': 'https://www.karton.eu/300x215x140-mm-einwellige-Kartons'
+    '3003': 'https://www.karton.eu/300x215x140-mm-einwellige-Kartons',
+    '3006': 'https://www.karton.eu/400x300x200-mm-einwellige-Kartons',
+    '3008': 'https://www.karton.eu/500x300x300-mm-einwellige-Kartons'
 }
 
 # Funktion zum Abrufen und Verarbeiten von Bestellungen
