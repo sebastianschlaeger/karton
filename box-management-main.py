@@ -99,12 +99,7 @@ def calculate_box_usage(allocated_orders):
     return usage_counter
 
 # Hauptfunktion zum Aktualisieren der Daten
-def update_data(clear_existing_data=False):
-    if clear_existing_data:
-        clear_order_data()
-        st.success("Vorhandene Bestelldaten wurden gelöscht.")
-    
-    processed_orders = fetch_and_process_orders()
+def update_data(processed_orders):
     allocated_orders = []
     unallocated_orders = []
 
@@ -113,7 +108,7 @@ def update_data(clear_existing_data=False):
         order_date = datetime.strptime(order['created_at'], "%Y-%m-%dT%H:%M:%S").date()
         if allocated_box:
             allocated_orders.append((order, allocated_box))
-            update_box_usage(allocated_box, 1, order_date)  # Übergebe das Bestelldatum
+            update_box_usage(allocated_box, 1, order_date)
         else:
             unallocated_orders.append(order)
 
@@ -154,12 +149,17 @@ def main():
     tab1, tab2, tab3 = st.tabs(["Hauptansicht", "Bestandsverwaltung", "Nicht zuordenbare Bestellungen"])
 
     with tab1:
-        # Hier kommt der bisherige Hauptinhalt hin
         clear_data = st.checkbox("Vorhandene Bestelldaten löschen")
         if st.button("Daten aktualisieren"):
             with st.spinner('Daten werden aktualisiert...'):
+                if clear_data:
+                    clear_order_data()
+                    st.success("Vorhandene Bestelldaten wurden gelöscht.")
                 processed_orders = fetch_and_process_orders()
-                update_data(processed_orders)
+                if processed_orders:
+                    update_data(processed_orders)
+                else:
+                    st.info("Keine neuen Daten zu verarbeiten.")
 
         # Anzeige der Bestandsreichweite und Warnungen
         st.subheader("Bestandsreichweite")
