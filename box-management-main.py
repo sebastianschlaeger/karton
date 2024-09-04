@@ -171,20 +171,16 @@ def display_inventory_summary():
         summary_data = get_summary_data()
         if not summary_data.empty:
             # Add a new column for the URL
-            summary_data['Kartontyp_mit_URL'] = summary_data['Kartontyp'].apply(
+            summary_data['Kartontyp'] = summary_data['Kartontyp'].apply(
                 lambda x: f"[{x}]({BOX_URLS[x]})" if x in BOX_URLS else str(x)
             )
             
-            # Reorder columns to put the new column first
-            cols = ['Kartontyp_mit_URL'] + [col for col in summary_data.columns if col != 'Kartontyp_mit_URL' and col != 'Kartontyp']
-            summary_data = summary_data[cols]
-            
-            # Display the dataframe with the new column
+            # Display the dataframe
             st.markdown(summary_data.to_markdown(index=False), unsafe_allow_html=True)
             
             for _, row in summary_data.iterrows():
                 days_left = float(row['Reichweite (Tage)'].replace(',', '.'))
-                kartontyp = row['Kartontyp_mit_URL']
+                kartontyp = row['Kartontyp']
                 if '[' in kartontyp:
                     kartontyp = kartontyp.split(']')[0][1:]  # Extract the Kartontyp from the URL format
                 if days_left < 30:
@@ -201,11 +197,7 @@ def display_current_inventory():
     for box_type, data in inventory.items():
         quantity = data.get('quantity', 'Nicht verfügbar')
         last_updated = data.get('last_updated', 'Nicht verfügbar')
-        if box_type in BOX_URLS:
-            box_link = f"[{box_type}]({BOX_URLS[box_type]})"
-        else:
-            box_link = box_type
-        st.markdown(f"{box_link}: {quantity} (Zuletzt aktualisiert: {last_updated})")
+        st.write(f"{box_type}: {quantity} (Zuletzt aktualisiert: {last_updated})")
 
 # Funktion zur Aktualisierung des Inventars über die UI
 def update_inventory_ui():
