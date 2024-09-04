@@ -92,7 +92,12 @@ def get_summary_data():
                 'Zuletzt aktualisiert': last_updated
             })
         
-        return pd.DataFrame(summary)
+        # Erstelle das DataFrame und sortiere es nach 'Kartontyp'
+        df = pd.DataFrame(summary)
+        df['Kartontyp'] = pd.to_numeric(df['Kartontyp'], errors='coerce')
+        df = df.sort_values('Kartontyp')
+        
+        return df
     except Exception as e:
         st.error(f"Fehler bei der Verarbeitung der Daten: {str(e)}")
         st.error(f"Stacktrace: {traceback.format_exc()}")
