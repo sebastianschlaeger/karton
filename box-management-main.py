@@ -170,7 +170,17 @@ def display_inventory_summary():
     try:
         summary_data = get_summary_data()
         if not summary_data.empty:
-            st.dataframe(summary_data.set_index("Kartontyp"))
+            # Add a new column for the URL
+            summary_data['Kartontyp_mit_URL'] = summary_data['Kartontyp'].apply(
+                lambda x: f"[{x}]({BOX_URLS[x]})" if x in BOX_URLS else x
+            )
+            
+            # Reorder columns to put the new column first
+            cols = ['Kartontyp_mit_URL'] + [col for col in summary_data.columns if col != 'Kartontyp_mit_URL' and col != 'Kartontyp']
+            summary_data = summary_data[cols]
+            
+            # Display the dataframe with the new column
+            st.markdown(summary_data.to_markdown(index=False), unsafe_allow_html=True)
             
             for _, row in summary_data.iterrows():
                 days_left = float(row['Reichweite (Tage)'].replace(',', '.'))
