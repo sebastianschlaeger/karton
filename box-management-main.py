@@ -197,6 +197,7 @@ def display_inventory_summary():
 
 # Funktion zur Anzeige des aktuellen Inventars
 def display_current_inventory():
+    inventory = get_current_inventory()
     for box_type, data in inventory.items():
         quantity = data.get('quantity', 'Nicht verfügbar')
         last_updated = data.get('last_updated', 'Nicht verfügbar')
@@ -204,6 +205,7 @@ def display_current_inventory():
 
 # Funktion zur Aktualisierung des Inventars über die UI
 def update_inventory_ui():
+    inventory = get_current_inventory()
     box_type = st.selectbox("Kartontyp", options=list(inventory.keys()))
     new_quantity = st.number_input("Neuer Bestand", step=1, value=int(inventory[box_type]['quantity']))
     update_date = st.date_input("Aktualisierungsdatum", value=datetime.now().date())
@@ -211,7 +213,6 @@ def update_inventory_ui():
         update_box_inventory(box_type, new_quantity, update_date)
         st.success(f"Bestand für {box_type} aktualisiert.")
         # Aktualisiere das Inventar nach der Änderung
-        global inventory
         inventory = get_box_inventory()
 
 # Funktion zur Anzeige nicht zuordenbarer Bestellungen
@@ -226,6 +227,9 @@ def display_unallocated_orders():
             st.info("Hier könnte eine Funktion zur Aktualisierung der Zuordnungsregeln implementiert werden.")
     else:
         st.info("Keine nicht zuordenbaren Bestellungen gefunden.")
+
+def get_current_inventory():
+    return get_box_inventory()
 
 if __name__ == "__main__":
     main()
