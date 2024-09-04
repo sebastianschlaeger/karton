@@ -61,7 +61,7 @@ def get_summary_data():
 
         summary = []
         for _, row in inventory.iterrows():
-            box_type = row['box_type']
+            box_type = str(row['box_type'])  # Konvertiere zu String
             original_quantity = row['quantity']
             last_updated = row['last_updated']
             
@@ -82,7 +82,7 @@ def get_summary_data():
             
             summary.append({
                 'Kartontyp': box_type,
-                'Produktname': product_names.get(box_type, 'Unbekannt'),
+                'Produktname': product_names.get(box_type, f'Unbekannt ({box_type})'),
                 'Ursprünglicher Bestand': int(original_quantity),
                 'Verbrauch seit letzter Aktualisierung': int(usage_since_update),
                 'Aktueller Bestand': int(current_quantity),
