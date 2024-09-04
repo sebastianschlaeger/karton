@@ -177,8 +177,8 @@ def display_inventory_summary():
                 lambda x: f"[Bestellen]({BOX_URLS[str(x)]})" if str(x) in BOX_URLS else ""
             )
             
-            # Reorder columns to put the new column last
-            cols = [col for col in summary_data.columns if col != 'Order URL'] + ['Order URL']
+            # Reorder columns to put the new columns in the desired position
+            cols = ['Kartontyp', 'Produktname'] + [col for col in summary_data.columns if col not in ['Kartontyp', 'Produktname', 'Order URL']] + ['Order URL']
             summary_data = summary_data[cols]
             
             # Display the dataframe
@@ -187,8 +187,9 @@ def display_inventory_summary():
             for _, row in summary_data.iterrows():
                 days_left = float(row['Reichweite (Tage)'].replace(',', '.'))
                 kartontyp = row['Kartontyp']
+                produktname = row['Produktname']
                 if days_left < 30:
-                    st.warning(f"Warnung: Bestand für {kartontyp} reicht nur noch für {days_left:.1f} Tage!")
+                    st.warning(f"Warnung: Bestand für {kartontyp} ({produktname}) reicht nur noch für {days_left:.1f} Tage!")
         else:
             st.info("Keine Daten zur Bestandsreichweite verfügbar.")
     except Exception as e:
