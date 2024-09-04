@@ -151,15 +151,17 @@ def main():
     with tab1:
         clear_data = st.checkbox("Vorhandene Bestelldaten löschen")
         if st.button("Daten aktualisieren"):
+            if clear_data:
+                clear_order_data()
+                st.success("Vorhandene Bestelldaten wurden gelöscht.")
+            
             with st.spinner('Daten werden aktualisiert...'):
-                if clear_data:
-                    clear_order_data()
-                    st.success("Vorhandene Bestelldaten wurden gelöscht.")
                 processed_orders = fetch_and_process_orders()
-                if processed_orders:
-                    update_data(processed_orders)
-                else:
-                    st.info("Keine neuen Daten zu verarbeiten.")
+            
+            if processed_orders:
+                update_data(processed_orders)
+            else:
+                st.info("Keine neuen Daten zu verarbeiten.")
 
         # Anzeige der Bestandsreichweite und Warnungen
         st.subheader("Bestandsreichweite")
