@@ -207,12 +207,25 @@ def display_current_inventory():
 def update_inventory_ui():
     global inventory
     inventory = get_current_inventory()
-    box_type = st.selectbox("Kartontyp", options=list(inventory.keys()))
-    new_quantity = st.number_input("Neuer Bestand", step=1, value=int(inventory[box_type]['quantity']))
+    
+    st.subheader("Bestand aktualisieren")
+    update_option = st.radio("Aktion wählen", ["Bestand aktualisieren", "Neue SKU hinzufügen"])
+    
+    if update_option == "Bestand aktualisieren":
+        box_type = st.selectbox("Kartontyp", options=list(inventory.keys()))
+        new_quantity = st.number_input("Neuer Bestand", step=1, value=int(inventory[box_type]['quantity']))
+    else:  # Neue SKU hinzufügen
+        box_type = st.text_input("Neue SKU")
+        new_quantity = st.number_input("Anfangsbestand", step=1, min_value=0, value=0)
+    
     update_date = st.date_input("Aktualisierungsdatum", value=datetime.now().date())
-    if st.button("Bestand aktualisieren"):
+    
+    if st.button("Bestand aktualisieren" if update_option == "Bestand aktualisieren" else "Neue SKU hinzufügen"):
         update_box_inventory(box_type, new_quantity, update_date)
-        st.success(f"Bestand für {box_type} aktualisiert.")
+        if update_option == "Bestand aktualisieren":
+            st.success(f"Bestand für {box_type} aktualisiert.")
+        else:
+            st.success(f"Neue SKU {box_type} hinzugefügt.")
         # Aktualisiere das Inventar nach der Änderung
         inventory = get_box_inventory()
 
