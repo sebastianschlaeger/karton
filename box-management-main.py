@@ -172,7 +172,7 @@ def display_inventory_summary():
         if not summary_data.empty:
             # Add a new column for the URL
             summary_data['Kartontyp_mit_URL'] = summary_data['Kartontyp'].apply(
-                lambda x: f"[{x}]({BOX_URLS[x]})" if x in BOX_URLS else x
+                lambda x: f"[{x}]({BOX_URLS[x]})" if x in BOX_URLS else str(x)
             )
             
             # Reorder columns to put the new column first
@@ -184,7 +184,9 @@ def display_inventory_summary():
             
             for _, row in summary_data.iterrows():
                 days_left = float(row['Reichweite (Tage)'].replace(',', '.'))
-                kartontyp = row['Kartontyp_mit_URL'].split(']')[0][1:]  # Extract the Kartontyp from the URL format
+                kartontyp = row['Kartontyp_mit_URL']
+                if '[' in kartontyp:
+                    kartontyp = kartontyp.split(']')[0][1:]  # Extract the Kartontyp from the URL format
                 if days_left < 30:
                     st.warning(f"Warnung: Bestand für {kartontyp} reicht nur noch für {days_left:.1f} Tage!")
         else:
