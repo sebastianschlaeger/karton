@@ -35,6 +35,12 @@ def allocate_box(order):
     elif sku_80511_count == 3:
         return '3006'
 
+    # Check total weight
+    if 10 <= total_weight < 20:
+        return '3006'
+    elif 20 <= total_weight <= 30:
+        return '3008'
+
     # Other allocation rules
     if total_items == 1:
         return '3001'
