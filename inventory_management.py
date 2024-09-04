@@ -36,11 +36,8 @@ def update_box_inventory(box_type, new_quantity, update_date=None):
         new_row = pd.DataFrame({'box_type': [box_type], 'quantity': [new_quantity], 'last_updated': [update_date]})
         inventory = pd.concat([inventory, new_row], ignore_index=True)
     
-    # Remove duplicates if any, keeping the last occurrence
-    inventory = inventory.drop_duplicates(subset='box_type', keep='last')
-    
     with s3.open(full_path, 'w') as f:
-        inventory.to_csv(f, index=False)
+        inventory.to_csv(f, index=False, date_format='%Y-%m-%d')
 
 def get_box_inventory():
     s3 = get_s3_fs()
