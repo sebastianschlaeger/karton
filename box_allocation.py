@@ -13,7 +13,7 @@ def allocate_box(order):
     )
     special_skus = ['8000', '8001', '8002', '8003', '8004']
 
-    # Überprüfe auf spezielle SKUs
+    # Check for special SKUs
     special_sku_count = sum(
         1 for item in order_items 
         if item.get('Product', {}).get('SKU') in special_skus
@@ -22,23 +22,32 @@ def allocate_box(order):
     if special_sku_count > 0:
         return '3002' * special_sku_count
 
-    # Andere Zuordnungsregeln
+    # Check for specific SKU quantities
+    sku_80510_count = sum(safe_float(item.get('Quantity', 0)) for item in order_items if item.get('Product', {}).get('SKU') == '80510')
+    sku_80511_count = sum(safe_float(item.get('Quantity', 0)) for item in order_items if item.get('Product', {}).get('SKU') == '80511')
+
+    if sku_80510_count == 2:
+        return '3006'
+    elif sku_80510_count == 3:
+        return '3008'
+    elif sku_80511_count == 2:
+        return '3005'
+    elif sku_80511_count == 3:
+        return '3006'
+
+    # Other allocation rules
     if total_items == 1:
         return '3001'
     elif total_items == 2:
-        return '3002'  # Immer 3002 für 2 Produkte, unabhängig vom Gewicht
+        return '3002'
     elif 3 <= total_items <= 4:
-        return '3003'  # Immer 3003 für 3-4 Produkte, unabhängig vom Gewicht
+        return '3003'
     elif any(item.get('Product', {}).get('SKU') == '80533' for item in order_items):
         return '3004'
     elif (5 <= total_items <= 10 and total_weight <= 10) or \
-         any(item.get('Product', {}).get('SKU') == '80510' and safe_float(item.get('Quantity', 0)) == 1 for item in order_items) or \
-         any(item.get('Product', {}).get('SKU') == '80511' and safe_float(item.get('Quantity', 0)) == 2 for item in order_items):
+         (sku_80510_count == 1) or \
+         (sku_80511_count == 1):
         return '3005'
-    elif any(item.get('Product', {}).get('SKU') == '80510' and safe_float(item.get('Quantity', 0)) == 2 for item in order_items):
-        return '3006'
-    elif any(item.get('Product', {}).get('SKU') == '80510' and safe_float(item.get('Quantity', 0)) == 3 for item in order_items):
-        return '3008'
 
-    # Wenn keine Zuordnung möglich ist
+    # If no allocation is possible
     return None
