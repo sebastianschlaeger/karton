@@ -22,8 +22,7 @@ inventory = get_box_inventory()
 BOX_URLS = {
     '3002': 'https://www.karton.eu/300x215x100-mm-einwellige-Kartons',
     '3003': 'https://www.karton.eu/300x215x140-mm-einwellige-Kartons',
-    '3006': 'https://www.karton.eu/400x300x200-mm-einwellige-Kartons',
-    '3008': 'https://www.karton.eu/500x300x300-mm-einwellige-Kartons'
+    '3004': 'https://www.karton.eu/250x250x250-mm-einwellige-Kartons'
 }
 
 # Funktion zum Abrufen und Verarbeiten von Bestellungen
