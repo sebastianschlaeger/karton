@@ -27,34 +27,39 @@ def fetch_and_process_orders():
     last_import_path = f"{bucket_name}/{last_import_file}"
 
     today = datetime.now().date()
-    
+    end_date = today - timedelta(days=1)  # Letzter voller Tag
+    start_date = end_date - timedelta(days=29)  # 30 Tage zurück
+
     if s3.exists(last_import_path):
         with s3.open(last_import_path, 'r') as f:
             last_import_date = datetime.strptime(f.read().strip(), "%Y-%m-%d").date()
     else:
-        last_import_date = today - timedelta(days=30)
+        last_import_date = start_date
 
-    end_date = today - timedelta(days=1)
-    
-    st.info(f"Letztes Importdatum: {last_import_date}, Enddatum: {end_date}")
+    st.info(f"Letztes Importdatum: {last_import_date}, Startdatum: {start_date}, Enddatum: {end_date}")
 
     if last_import_date >= end_date:
         st.info("Alle verfügbaren Daten wurden bereits importiert.")
         return []
 
     all_processed_orders = []
-    current_date = end_date
+    current_date = max(last_import_date, start_date)
     
-    total_days = (end_date - last_import_date).days
+    total_days = (end_date - current_date).days + 1
     days_processed = 0
     
-    while current_date > last_import_date:
+    progress_bar = st.progress(0)
+    
+    while current_date <= end_date:
         st.info(f"Verarbeite Bestellungen für {current_date}")
         daily_orders = fetch_and_process_daily_orders(current_date)
         all_processed_orders.extend(daily_orders)
         
-        current_date -= timedelta(days=1)
+        current_date += timedelta(days=1)
         days_processed += 1
+        
+        progress = days_processed / total_days
+        progress_bar.progress(progress)
         
         st.info(f"Fortschritt: {days_processed}/{total_days} Tage verarbeitet")
 
@@ -62,6 +67,7 @@ def fetch_and_process_orders():
     with s3.open(last_import_path, 'w') as f:
         f.write(end_date.strftime("%Y-%m-%d"))
 
+    progress_bar.empty()
     st.success(f"Insgesamt {len(all_processed_orders)} Bestellungen verarbeitet.")
     return all_processed_orders
 
@@ -150,7 +156,9 @@ def update_data(clear_existing_data=False):
 # UI-Elemente
 clear_data = st.checkbox("Vorhandene Bestelldaten löschen")
 if st.button("Daten aktualisieren"):
-    update_data(clear_data)
+    with st.spinner('Daten werden aktualisiert...'):
+        processed_orders = fetch_and_process_orders()
+        # Weitere Verarbeitung der Bestellungen...
 
 # Anzeige des aktuellen Kartonbestands
 st.subheader("Aktueller Kartonbestand")
