@@ -5,7 +5,7 @@ from billbee_api import BillbeeAPI
 from box_allocation import allocate_box
 from data_processor import process_orders
 from inventory_management import update_box_inventory, get_box_inventory, initialize_inventory_if_empty, adjust_inventory_for_usage
-from s3_operations import save_unallocated_orders, get_unallocated_orders, get_summary_data, update_box_usage, get_s3_fs, clear_order_data
+from s3_operations import get_summary_data, update_box_usage, get_s3_fs, clear_order_data
 import pandas as pd
 import traceback
 
@@ -101,7 +101,6 @@ def calculate_box_usage(allocated_orders):
 # Hauptfunktion zum Aktualisieren der Daten
 def update_data(processed_orders):
     allocated_orders = []
-    unallocated_orders = []
 
     for order in processed_orders:
         allocated_box = order['allocated_box']
@@ -109,16 +108,9 @@ def update_data(processed_orders):
         if allocated_box:
             allocated_orders.append((order, allocated_box))
             update_box_usage(allocated_box, 1, order_date)
-        else:
-            unallocated_orders.append(order)
 
     # Berechne Verbrauch pro Karton-Art
     box_usage = calculate_box_usage(allocated_orders)
-
-    # Speichere nicht zuordenbare Bestellungen
-    if unallocated_orders:
-        save_unallocated_orders(unallocated_orders)
-        st.warning(f"{len(unallocated_orders)} nicht zuordenbare Bestellungen gefunden und gespeichert.")
 
     st.success(f"{len(allocated_orders)} Bestellungen verarbeitet.")
     
@@ -132,22 +124,13 @@ def update_data(processed_orders):
     for order, box in allocated_orders[-50:]:
         products_str = ", ".join([f"{p['sku']} (x{p['quantity']})" for p in order['products']])
         st.write(f"Bestellnummer: {order['order_number']}, Karton: {box}, Produkte: {products_str}")
-    
-    # Anzeige nicht zuordenbarer Bestellungen
-    st.subheader("Nicht zuordenbare Bestellungen")
-    if unallocated_orders:
-        for order in unallocated_orders:
-            products_str = ", ".join([f"{p['sku']} (x{p['quantity']})" for p in order['products']])
-            st.write(f"Bestellnummer: {order['order_number']}, Produkte: {products_str}")
-    else:
-        st.info("Keine nicht zuordenbaren Bestellungen gefunden.")
 
 # Hauptfunktion der App
 def main():
     st.title("Kartonverwaltungs-App")
 
     # Erstelle Tabs
-    tab1, tab2, tab3 = st.tabs(["Hauptansicht", "Bestandsverwaltung", "Nicht zuordenbare Bestellungen"])
+    tab1, tab2 = st.tabs(["Hauptansicht", "Bestandsverwaltung"])
 
     with tab1:
         clear_data = st.checkbox("Vorhandene Bestelldaten löschen")
@@ -176,11 +159,6 @@ def main():
         st.subheader("Bestand aktualisieren")
         update_inventory_ui()
 
-    with tab3:
-        # Nicht zuordenbare Bestellungen
-        st.subheader("Nicht zuordenbare Bestellungen")
-        display_unallocated_orders()
-
 # Funktion zur Anzeige der Bestandsübersicht
 def display_inventory_summary():
     try:
@@ -208,6 +186,7 @@ def display_current_inventory():
 
 # Funktion zur Aktualisierung des Inventars über die UI
 def update_inventory_ui():
+    global inventory
     inventory = get_current_inventory()
     box_type = st.selectbox("Kartontyp", options=list(inventory.keys()))
     new_quantity = st.number_input("Neuer Bestand", step=1, value=int(inventory[box_type]['quantity']))
@@ -217,27 +196,6 @@ def update_inventory_ui():
         st.success(f"Bestand für {box_type} aktualisiert.")
         # Aktualisiere das Inventar nach der Änderung
         inventory = get_box_inventory()
-
-# Funktion zur Anzeige nicht zuordenbarer Bestellungen
-def display_unallocated_orders():
-    unallocated_orders = get_unallocated_orders()
-    if unallocated_orders:
-        st.info(f"Insgesamt {len(unallocated_orders)} nicht zuordenbare Bestellungen gefunden.")
-        for order in unallocated_orders:
-            products_str = ", ".join([f"{p['sku']} (x{p['quantity']})" for p in order['products']])
-            st.write(f"Bestellnummer: {order['order_number']}, Produkte: {products_str}")
-        
-        if st.button("Zuordnungsregeln aktualisieren"):
-            st.info("Hier könnte eine Funktion zur Aktualisierung der Zuordnungsregeln implementiert werden.")
-    else:
-        st.info("Keine nicht zuordenbaren Bestellungen gefunden.")
-    
-    # Zeige den Pfad zur JSON-Datei an
-    s3 = get_s3_fs()
-    bucket_name = st.secrets['aws']['S3_BUCKET_NAME']
-    filename = "unallocated_orders.json"
-    full_path = f"{bucket_name}/{filename}"
-    st.info(f"Pfad zur JSON-Datei mit nicht zuordenbaren Bestellungen: {full_path}")
 
 def get_current_inventory():
     return get_box_inventory()
