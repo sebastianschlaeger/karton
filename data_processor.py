@@ -48,7 +48,7 @@ def process_orders(orders_data):
             allocated_box, allocation_reason = allocate_box(total_weight)
 
         processed_order['allocated_box'] = allocated_box
-        processed_order['allocation_reason'] = f"Weight: {total_weight/1000:.2f} kg"
+        processed_order['allocation_reason'] = allocation_reason
         processed_orders.append(processed_order)
     
     return processed_orders
