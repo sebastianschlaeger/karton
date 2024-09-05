@@ -14,19 +14,21 @@ def allocate_box(order):
     special_skus = ['8000', '8001', '8002', '8003', '8004']
 
     # Check for special SKUs
-    special_sku_count = sum(
-        1 for item in order_items 
+    special_sku_items = [
+        item for item in order_items 
         if item.get('Product', {}).get('SKU') in special_skus
-    )
-
-    if special_sku_count > 0:
-        return '3002' * special_sku_count, f"Special SKU count: {special_sku_count}"
+    ]
+    
+    if len(special_sku_items) == len(order_items) and len(special_sku_items) == 1:
+        return '3001', f"Single special SKU: {special_sku_items[0].get('Product', {}).get('SKU')}"
 
     # Check for specific SKU quantities
     sku_80510_count = sum(safe_float(item.get('Quantity', 0)) for item in order_items if item.get('Product', {}).get('SKU') == '80510')
     sku_80511_count = sum(safe_float(item.get('Quantity', 0)) for item in order_items if item.get('Product', {}).get('SKU') == '80511')
 
-    if sku_80510_count == 2:
+    if sku_80510_count == 1 or sku_80511_count == 1:
+        return '3005', f"1x SKU 80510/80511"
+    elif sku_80510_count == 2:
         return '3006', "2x SKU 80510"
     elif sku_80510_count == 3:
         return '3008', "3x SKU 80510"
