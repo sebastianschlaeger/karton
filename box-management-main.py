@@ -238,5 +238,19 @@ def update_inventory_ui():
 def get_current_inventory():
     return get_box_inventory()
 
+# Add this function near the other data-related functions
+def get_daily_usage(date):
+    s3 = get_s3_fs()
+    bucket_name = st.secrets['aws']['S3_BUCKET_NAME']
+    usage_file = "daily_box_usage.csv"
+    usage_path = f"{bucket_name}/{usage_file}"
+
+    if s3.exists(usage_path):
+        with s3.open(usage_path, 'r') as f:
+            df = pd.read_csv(f)
+        df['date'] = pd.to_datetime(df['date']).dt.date
+        return df[df['date'] == date].to_dict('records')
+    return []
+
 if __name__ == "__main__":
     main()
