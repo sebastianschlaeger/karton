@@ -32,5 +32,20 @@ def allocate_box(order_items):
     if total_items == 1:
         print("Debug: Condition met for total_items == 1")
         return '3001', "1 item"
-    
-    # ... rest of the function remains the same
+    elif total_items == 2:
+        return '3002', "2 items"
+    elif 3 <= total_items <= 4:
+        return '3003', f"{total_items} items"
+    elif total_weight <= 5:
+        return '3004', f"{total_items} items, weight: {total_weight:.2f} kg"
+    elif (5 <= total_items <= 10 and total_weight <= 10) or \
+         (total_items <= 4 and 5 < total_weight <= 10):
+        return '3005', f"{total_items} items, weight: {total_weight:.2f} kg"
+    elif (11 <= total_items <= 25 and total_weight <= 20) or \
+         (5 <= total_items <= 10 and 10 < total_weight <= 20) or \
+         (total_items <= 4 and 10 < total_weight <= 20):
+        return '3006', f"{total_items} items, weight: {total_weight:.2f} kg"
+    elif (26 <= total_items <= 50) or (20 < total_weight <= 31.5):
+        return '3007', f"{total_items} items, weight: {total_weight:.2f} kg"
+    else:
+        return '3008', f"{total_items} items, weight: {total_weight:.2f} kg"
