@@ -12,13 +12,11 @@ def allocate_box(total_weight):
     elif total_weight <= 5300:
         return '3003', '3000g < Weight <= 5300g'
     elif total_weight <= 10200:
-        return '3004', '5300g < Weight <= 10200g'
+        return '3005', '5300g < Weight <= 10200g'
     elif total_weight <= 20200:
-        return '3005', '10200g < Weight <= 20200g'
-    elif total_weight <= 31500:
-        return '3006', '20200g < Weight <= 31500g'
+        return '3006', '10200g < Weight <= 20200g'
     else:
-        return '3008', 'Weight > 31500g'
+        return '3008', 'Weight > 20200g'
 
     # Special case for SKU 80533
     if any(item.get('Product', {}).get('SKU') == '80533' for item in order_items):
