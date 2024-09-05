@@ -22,12 +22,12 @@ def process_orders(orders_data):
         total_weight = sum(
             safe_float(item.get('Product', {}).get('Weight', 0)) * safe_float(item.get('Quantity', 0))
             for item in valid_items
-        ) * 1000  # Convert kg to g
+        )  # This is now in kg
 
         processed_order = {
             'order_number': order.get('OrderNumber', 'Unknown'),
             'created_at': order.get('CreatedAt'),
-            'total_weight': total_weight / 1000,  # Store weight in kg for display
+            'total_weight': total_weight,  # Store weight in kg for display
             'products': [
                 {
                     'sku': item.get('Product', {}).get('SKU', 'Unknown'),
@@ -44,8 +44,8 @@ def process_orders(orders_data):
         if has_special_sku:
             allocated_box, allocation_reason = '3004', 'Special case for SKU 80533'
         else:
-            allocated_box, _ = allocate_box(total_weight)
-            allocation_reason = f"Weight: {total_weight/1000:.2f} kg"
+            allocated_box, _ = allocate_box(total_weight * 1000)  # Convert to g for allocation
+            allocation_reason = f"Weight: {total_weight:.2f} kg"
 
         processed_order['allocated_box'] = allocated_box
         processed_order['allocation_reason'] = allocation_reason
