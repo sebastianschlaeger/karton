@@ -44,7 +44,7 @@ def process_orders(orders_data):
         if has_special_sku:
             allocated_box, allocation_reason = '3004', 'Special case for SKU 80533'
         else:
-            allocated_box, _ = allocate_box(total_weight * 1000)  # Convert to g for allocation
+            allocated_box, _ = allocate_box(int(total_weight * 1000))  # Convert kg to g for allocation
             allocation_reason = f"Weight: {total_weight:.2f} kg"
 
         processed_order['allocated_box'] = allocated_box

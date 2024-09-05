@@ -181,7 +181,7 @@ def display_order_allocations():
             products_str = ", ".join([f"{p['sku']} (x{p['quantity']})" for p in eval(order['products'])])
             st.write(f"Bestellnummer: {order['order_number']}, Karton: {order['allocated_box']}, Grund: {order['allocation_reason']}")
             st.write(f"Produkte: {products_str}")
-            st.write(f"Gesamtgewicht: {order['total_weight'] / 1000:.2f} kg")
+            st.write(f"Gesamtgewicht: {order['total_weight']:.2f} kg")
             st.write("---")
     else:
         st.info("Keine verarbeiteten Bestellungen gefunden.")
