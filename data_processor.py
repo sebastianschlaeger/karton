@@ -39,7 +39,14 @@ def process_orders(orders_data):
             'OrderItems': valid_items
         }
         
-        allocated_box, allocation_reason = allocate_box(total_weight)  # Übergeben Sie total_weight
+        # Check for special case SKU 80533
+        has_special_sku = any(item.get('Product', {}).get('SKU') == '80533' for item in valid_items)
+
+        if has_special_sku:
+            allocated_box, allocation_reason = '3004', 'Special case for SKU 80533'
+        else:
+            allocated_box, allocation_reason = allocate_box(total_weight)
+
         processed_order['allocated_box'] = allocated_box
         processed_order['allocation_reason'] = allocation_reason
         processed_orders.append(processed_order)

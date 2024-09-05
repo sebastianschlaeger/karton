@@ -4,38 +4,22 @@ def safe_float(value):
     except (TypeError, ValueError):
         return 0.0
 
-def allocate_box(order):
-    if isinstance(order, str):
-        return None, "Invalid order data: received string instead of dictionary"
-
-    order_items = order.get('OrderItems', [])
-    if not order_items:
-        return None, "No order items found"
-
-    total_weight = sum(
-        safe_float(item.get('Product', {}).get('WeightInGram', 0)) * safe_float(item.get('Quantity', 0))
-        for item in order_items
-    )
-    total_weight_kg = total_weight / 1000  # Convert to kg
-
-    print(f"Debug: Total weight: {total_weight_kg:.2f} kg")
-
-    # Check for SKU 80533
-    if any(item.get('Product', {}).get('SKU') == '80533' and safe_float(item.get('Quantity', 0)) == 1 for item in order_items):
-        return '3004', "Contains 1x SKU 80533"
-
-    # Allocate box based on weight
-    if total_weight_kg < 1.8:
-        return '3001', f"Weight: {total_weight_kg:.2f} kg"
-    elif 1.8 <= total_weight_kg < 3:
-        return '3002', f"Weight: {total_weight_kg:.2f} kg"
-    elif 3 <= total_weight_kg < 5.3:
-        return '3003', f"Weight: {total_weight_kg:.2f} kg"
-    elif 5.3 <= total_weight_kg < 10.2:
-        return '3005', f"Weight: {total_weight_kg:.2f} kg"
-    elif 10.2 <= total_weight_kg < 20.2:
-        return '3006', f"Weight: {total_weight_kg:.2f} kg"
-    elif 20.2 <= total_weight_kg <= 31.5:
-        return '3008', f"Weight: {total_weight_kg:.2f} kg"
+def allocate_box(total_weight):
+    if total_weight <= 500:
+        return '3001', 'Weight <= 500g'
+    elif total_weight <= 1000:
+        return '3002', '500g < Weight <= 1000g'
+    elif total_weight <= 2000:
+        return '3003', '1000g < Weight <= 2000g'
+    elif total_weight <= 5000:
+        return '3004', '2000g < Weight <= 5000g'
+    elif total_weight <= 10000:
+        return '3005', '5000g < Weight <= 10000g'
+    elif total_weight <= 20000:
+        return '3006', '10000g < Weight <= 20000g'
     else:
-        return None, f"Weight exceeds maximum: {total_weight_kg:.2f} kg"
+        return '3008', 'Weight > 20000g'
+
+    # Special case for SKU 80533
+    if any(item.get('Product', {}).get('SKU') == '80533' for item in order_items):
+        return '3004', 'Special case for SKU 80533'
