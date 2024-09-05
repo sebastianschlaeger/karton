@@ -12,7 +12,10 @@ def allocate_box(order):
     if not order_items:
         return None, "No order items found"
 
-    total_weight = sum(safe_float(item.get('Product', {}).get('WeightInGram', 0)) * safe_float(item.get('Quantity', 0)) for item in order_items)
+    total_weight = sum(
+        safe_float(item.get('Product', {}).get('WeightInGram', 0)) * safe_float(item.get('Quantity', 0))
+        for item in order_items
+    )
     total_weight_kg = total_weight / 1000  # Convert to kg
 
     print(f"Debug: Total weight: {total_weight_kg:.2f} kg")

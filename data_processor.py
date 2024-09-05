@@ -27,7 +27,7 @@ def process_orders(orders_data):
         processed_order = {
             'order_number': order.get('OrderNumber', 'Unknown'),
             'created_at': order.get('CreatedAt'),
-            'total_weight': total_weight,
+            'total_weight': total_weight,  # Stellen Sie sicher, dass dies korrekt ist
             'products': [
                 {
                     'sku': item.get('Product', {}).get('SKU', 'Unknown'),
@@ -36,10 +36,10 @@ def process_orders(orders_data):
                 }
                 for item in valid_items
             ],
-            'OrderItems': valid_items  # Add this line to include the original OrderItems
+            'OrderItems': valid_items
         }
         
-        allocated_box, allocation_reason = allocate_box(processed_order)
+        allocated_box, allocation_reason = allocate_box(total_weight)  # Übergeben Sie total_weight
         processed_order['allocated_box'] = allocated_box
         processed_order['allocation_reason'] = allocation_reason
         processed_orders.append(processed_order)
