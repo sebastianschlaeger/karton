@@ -136,7 +136,10 @@ def update_data(processed_orders):
     st.subheader("Zuordnungen der letzten 50 Bestellungen")
     for order, box in allocated_orders[-50:]:
         products_str = ", ".join([f"{p['sku']} (x{p['quantity']})" for p in order['products']])
-        st.write(f"Bestellnummer: {order['order_number']}, Karton: {box}, Produkte: {products_str}")
+        st.write(f"Bestellnummer: {order['order_number']}, Karton: {box}, Grund: {order['allocation_reason']}")
+        st.write(f"Produkte: {products_str}")
+        st.write(f"Gesamtgewicht: {order['total_weight']:.2f} kg")
+        st.write("---")
 
 # Hauptfunktion der App
 def main():

@@ -34,7 +34,9 @@ def process_orders(orders_data):
             ]
         }
         
-        processed_order['allocated_box'] = allocate_box(order)
+        allocated_box, allocation_reason = allocate_box(order)
+        processed_order['allocated_box'] = allocated_box
+        processed_order['allocation_reason'] = allocation_reason
         processed_orders.append(processed_order)
     
     return processed_orders
