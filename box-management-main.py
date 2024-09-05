@@ -113,40 +113,24 @@ def calculate_box_usage(allocated_orders):
 
 # Hauptfunktion zum Aktualisieren der Daten
 def update_data(processed_orders):
-    allocated_orders = []
-
-    for order in processed_orders:
-        allocated_box = order['allocated_box']
-        order_date = datetime.strptime(order['created_at'], "%Y-%m-%dT%H:%M:%S").date()
-        if allocated_box:
-            allocated_orders.append((order, allocated_box))
-            update_box_usage(allocated_box, 1, order_date)
-
-    # Berechne Verbrauch pro Karton-Art
-    box_usage = calculate_box_usage(allocated_orders)
-
-    st.success(f"{len(allocated_orders)} Bestellungen verarbeitet.")
+    s3 = get_s3_fs()
+    bucket_name = st.secrets['aws']['S3_BUCKET_NAME']
+    filename = "processed_orders.csv"
+    full_path = f"{bucket_name}/{filename}"
     
-    # Anzeige der Verbrauchsübersicht
-    st.subheader("Verbrauch pro Karton-Art")
-    for box_type, count in box_usage.items():
-        st.write(f"{box_type}: {count}")
+    df = pd.DataFrame(processed_orders)
     
-    # Anzeige der Zuordnungen
-    st.subheader("Zuordnungen der letzten 50 Bestellungen")
-    for order, box in allocated_orders[-50:]:
-        products_str = ", ".join([f"{p['sku']} (x{p['quantity']})" for p in order['products']])
-        st.write(f"Bestellnummer: {order['order_number']}, Karton: {box}, Grund: {order['allocation_reason']}")
-        st.write(f"Produkte: {products_str}")
-        st.write(f"Gesamtgewicht: {order['total_weight']:.2f} kg")
-        st.write("---")
+    with s3.open(full_path, 'w') as f:
+        df.to_csv(f, index=False)
+    
+    st.success(f"{len(processed_orders)} Bestellungen verarbeitet und gespeichert.")
 
 # Hauptfunktion der App
 def main():
     st.title("Kartonverwaltungs-App")
 
     # Erstelle Tabs
-    tab1, tab2 = st.tabs(["Hauptansicht", "Bestandsverwaltung"])
+    tab1, tab2, tab3 = st.tabs(["Hauptansicht", "Bestandsverwaltung", "Bestellzuordnungen"])
 
     with tab1:
         clear_data = st.checkbox("Vorhandene Bestelldaten löschen")
@@ -174,6 +158,31 @@ def main():
 
         st.subheader("Bestand aktualisieren")
         update_inventory_ui()
+
+    with tab3:
+        # Bestellzuordnungen anzeigen
+        st.subheader("Zuordnungen der letzten 50 Bestellungen")
+        display_order_allocations()
+
+def display_order_allocations():
+    s3 = get_s3_fs()
+    bucket_name = st.secrets['aws']['S3_BUCKET_NAME']
+    filename = "processed_orders.csv"
+    full_path = f"{bucket_name}/{filename}"
+    
+    if s3.exists(full_path):
+        with s3.open(full_path, 'r') as f:
+            orders = pd.read_csv(f)
+        orders = orders.sort_values('created_at', ascending=False).head(50)
+        
+        for _, order in orders.iterrows():
+            products_str = ", ".join([f"{p['sku']} (x{p['quantity']})" for p in eval(order['products'])])
+            st.write(f"Bestellnummer: {order['order_number']}, Karton: {order['allocated_box']}, Grund: {order['allocation_reason']}")
+            st.write(f"Produkte: {products_str}")
+            st.write(f"Gesamtgewicht: {order['total_weight']:.2f} kg")
+            st.write("---")
+    else:
+        st.info("Keine verarbeiteten Bestellungen gefunden.")
 
 # Funktion zur Anzeige der Bestandsübersicht
 def display_inventory_summary():
