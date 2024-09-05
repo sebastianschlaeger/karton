@@ -4,7 +4,14 @@ def safe_float(value):
     except (TypeError, ValueError):
         return 0.0
 
-def allocate_box(order_items):
+def allocate_box(order):
+    if isinstance(order, str):
+        return None, "Invalid order data: received string instead of dictionary"
+
+    order_items = order.get('OrderItems', [])
+    if not order_items:
+        return None, "No order items found"
+
     total_weight = sum(safe_float(item.get('Product', {}).get('WeightInGram', 0)) * safe_float(item.get('Quantity', 0)) for item in order_items)
     total_weight_kg = total_weight / 1000  # Convert to kg
 

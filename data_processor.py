@@ -10,10 +10,14 @@ def process_orders(orders_data):
     processed_orders = []
     
     for order in orders_data:
-        valid_items = [item for item in order.get('OrderItems', []) if item.get('Product') is not None]
+        if not isinstance(order, dict):
+            print(f"Warning: Skipping invalid order data: {order}")
+            continue
+
+        valid_items = [item for item in order.get('OrderItems', []) if isinstance(item, dict) and item.get('Product') is not None]
         
         if not valid_items:
-            continue  # Überspringe Bestellungen ohne gültige Produkte
+            continue  # Skip orders without valid products
         
         total_weight = sum(
             safe_float(item.get('Product', {}).get('Weight', 0)) * safe_float(item.get('Quantity', 0))
@@ -31,10 +35,11 @@ def process_orders(orders_data):
                     'weight': safe_float(item.get('Product', {}).get('Weight', 0))
                 }
                 for item in valid_items
-            ]
+            ],
+            'OrderItems': valid_items  # Add this line to include the original OrderItems
         }
         
-        allocated_box, allocation_reason = allocate_box(order)
+        allocated_box, allocation_reason = allocate_box(processed_order)
         processed_order['allocated_box'] = allocated_box
         processed_order['allocation_reason'] = allocation_reason
         processed_orders.append(processed_order)

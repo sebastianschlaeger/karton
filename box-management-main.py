@@ -78,6 +78,8 @@ def fetch_and_process_daily_orders(process_date):
         
         orders_data = billbee_api.get_orders(process_date, process_date + timedelta(days=1))
         st.info(f"Anzahl der abgerufenen Bestellungen für {process_date}: {len(orders_data)}")
+        st.info(f"Typ des ersten Elements in orders_data: {type(orders_data[0]) if orders_data else 'Keine Daten'}")
+        st.info(f"Inhalt des ersten Elements in orders_data: {orders_data[0] if orders_data else 'Keine Daten'}")
         
         processed_orders = process_orders(orders_data)
         st.info(f"Anzahl der verarbeiteten Bestellungen für {process_date}: {len(processed_orders)}")
