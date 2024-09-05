@@ -5,47 +5,27 @@ def safe_float(value):
         return 0.0
 
 def allocate_box(order_items):
-    total_items = sum(safe_float(item.get('Quantity', 0)) for item in order_items)
     total_weight = sum(safe_float(item.get('Product', {}).get('WeightInGram', 0)) * safe_float(item.get('Quantity', 0)) for item in order_items)
-    
-    print(f"Debug: Total items: {total_items}, Total weight: {total_weight}")
+    total_weight_kg = total_weight / 1000  # Convert to kg
 
-    # Check for specific SKU quantities
-    sku_80510_count = sum(safe_float(item.get('Quantity', 0)) for item in order_items if item.get('Product', {}).get('SKU') == '80510')
-    sku_80511_count = sum(safe_float(item.get('Quantity', 0)) for item in order_items if item.get('Product', {}).get('SKU') == '80511')
+    print(f"Debug: Total weight: {total_weight_kg:.2f} kg")
 
-    print(f"Debug: SKU 80510 count: {sku_80510_count}, SKU 80511 count: {sku_80511_count}")
+    # Check for SKU 80533
+    if any(item.get('Product', {}).get('SKU') == '80533' and safe_float(item.get('Quantity', 0)) == 1 for item in order_items):
+        return '3004', "Contains 1x SKU 80533"
 
-    if sku_80510_count == 1 or sku_80511_count == 1:
-        print("Debug: Condition met for SKU 80510/80511 count == 1")
-        return '3005', f"1x SKU 80510/80511"
-    elif sku_80510_count == 2:
-        return '3006', "2x SKU 80510"
-    elif sku_80510_count == 3:
-        return '3008', "3x SKU 80510"
-    elif sku_80511_count == 2:
-        return '3005', "2x SKU 80511"
-    elif sku_80511_count == 3:
-        return '3006', "3x SKU 80511"
-
-    # Other allocation rules
-    if total_items == 1:
-        print("Debug: Condition met for total_items == 1")
-        return '3001', "1 item"
-    elif total_items == 2:
-        return '3002', "2 items"
-    elif 3 <= total_items <= 4:
-        return '3003', f"{total_items} items"
-    elif total_weight <= 5:
-        return '3004', f"{total_items} items, weight: {total_weight:.2f} kg"
-    elif (5 <= total_items <= 10 and total_weight <= 10) or \
-         (total_items <= 4 and 5 < total_weight <= 10):
-        return '3005', f"{total_items} items, weight: {total_weight:.2f} kg"
-    elif (11 <= total_items <= 25 and total_weight <= 20) or \
-         (5 <= total_items <= 10 and 10 < total_weight <= 20) or \
-         (total_items <= 4 and 10 < total_weight <= 20):
-        return '3006', f"{total_items} items, weight: {total_weight:.2f} kg"
-    elif (26 <= total_items <= 50) or (20 < total_weight <= 31.5):
-        return '3007', f"{total_items} items, weight: {total_weight:.2f} kg"
+    # Allocate box based on weight
+    if total_weight_kg < 1.8:
+        return '3001', f"Weight: {total_weight_kg:.2f} kg"
+    elif 1.8 <= total_weight_kg < 3:
+        return '3002', f"Weight: {total_weight_kg:.2f} kg"
+    elif 3 <= total_weight_kg < 5.3:
+        return '3003', f"Weight: {total_weight_kg:.2f} kg"
+    elif 5.3 <= total_weight_kg < 10.2:
+        return '3005', f"Weight: {total_weight_kg:.2f} kg"
+    elif 10.2 <= total_weight_kg < 20.2:
+        return '3006', f"Weight: {total_weight_kg:.2f} kg"
+    elif 20.2 <= total_weight_kg <= 31.5:
+        return '3008', f"Weight: {total_weight_kg:.2f} kg"
     else:
-        return '3008', f"{total_items} items, weight: {total_weight:.2f} kg"
+        return None, f"Weight exceeds maximum: {total_weight_kg:.2f} kg"
