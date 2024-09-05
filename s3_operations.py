@@ -112,6 +112,19 @@ def clear_order_data():
     if s3.exists(file_path):
         s3.rm(file_path)
 
+def get_daily_usage(date):
+    s3 = get_s3_fs()
+    bucket_name = st.secrets['aws']['S3_BUCKET_NAME']
+    filename = "daily_box_usage.csv"
+    full_path = f"{bucket_name}/{filename}"
+    
+    if s3.exists(full_path):
+        with s3.open(full_path, 'r') as f:
+            usage = pd.read_csv(f)
+        usage['date'] = pd.to_datetime(usage['date']).dt.date
+        return usage[usage['date'] == date]
+    return pd.DataFrame()
+
 def update_box_usage(box_type, quantity, process_date):
     if not isinstance(process_date, date):
         raise ValueError(f"Ungültiges Datumsformat: {process_date}")
@@ -133,8 +146,8 @@ def update_box_usage(box_type, quantity, process_date):
     # Überprüfen, ob für diesen Tag bereits ein Eintrag existiert
     mask = (usage['date'] == date_str) & (usage['box_type'] == box_type)
     if mask.any():
-        # Aktualisiere den bestehenden Eintrag
-        usage.loc[mask, 'quantity'] += quantity
+        # Ersetze den bestehenden Eintrag
+        usage.loc[mask, 'quantity'] = quantity
     else:
         # Füge einen neuen Eintrag hinzu
         new_row = pd.DataFrame({'date': [date_str], 'box_type': [box_type], 'quantity': [quantity]})

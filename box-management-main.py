@@ -82,6 +82,12 @@ def fetch_and_process_daily_orders(process_date):
         processed_orders = process_orders(orders_data)
         st.info(f"Anzahl der verarbeiteten Bestellungen für {process_date}: {len(processed_orders)}")
 
+        # Überprüfe, ob bereits Daten für diesen Tag existieren
+        existing_usage = get_daily_usage(process_date)
+        if existing_usage:
+            st.info(f"Daten für {process_date} existieren bereits. Überspringe Verarbeitung.")
+            return []
+
         # Summiere den Kartonverbrauch für diesen Tag
         daily_usage = Counter()
         for order in processed_orders:
