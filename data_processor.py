@@ -22,12 +22,12 @@ def process_orders(orders_data):
         total_weight = sum(
             safe_float(item.get('Product', {}).get('Weight', 0)) * safe_float(item.get('Quantity', 0))
             for item in valid_items
-        )
+        ) * 1000  # Konvertiere von kg zu g
         
         processed_order = {
             'order_number': order.get('OrderNumber', 'Unknown'),
             'created_at': order.get('CreatedAt'),
-            'total_weight': total_weight,  # Stellen Sie sicher, dass dies korrekt ist
+            'total_weight': total_weight / 1000,  # Speichere das Gewicht in kg für die Anzeige
             'products': [
                 {
                     'sku': item.get('Product', {}).get('SKU', 'Unknown'),
